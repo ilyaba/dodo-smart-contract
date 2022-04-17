@@ -15,7 +15,8 @@ export function getDefaultWeb3() {
 }
 
 export class EVM {
-  private provider = new Web3.providers.HttpProvider(process.env.RPC_NODE_URI);
+//  private provider = new Web3.providers.HttpProvider(process.env.RPC_NODE_URI);
+  private provider = process.env.RPC_NODE_URI.startsWith("ws") ? new Web3.providers.WebsocketProvider(process.env.RPC_NODE_URI) : new Web3.providers.HttpProvider(process.env.RPC_NODE_URI);
 
   public async reset(id: string): Promise<string> {
     if (!id) {

@@ -8,6 +8,7 @@ import * as assert from 'assert';
 import { BigNumber } from 'bignumber.js';
 import { TransactionReceipt } from 'web3-core';
 import { Contract } from 'web3-eth-contract';
+import {truffleAssert} from './utils/TruffleReverts';
 
 import {
   DefaultDODOContextInitConfig,
@@ -212,21 +213,19 @@ describe("DODO ETH PROXY", () => {
 
   describe("revert cases", () => {
     it("value not match", async () => {
-      await assert.rejects(
-        DODOEthProxy.methods
-          .sellEthToToken(
+      await truffleAssert.reverts(
+           DODOEthProxy.methods.sellEthToToken(
             ctx.QUOTE.options.address,
             decimalStr("1"),
             decimalStr("50")
           )
           .send(ctx.sendParam(trader, "2")),
-        /ETH_AMOUNT_NOT_MATCH/
+         "ETH_AMOUNT_NOT_MATCH"
       );
-      await assert.rejects(
-        DODOEthProxy.methods
-          .depositEthAsBase(decimalStr("1"), ctx.QUOTE.options.address)
-          .send(ctx.sendParam(lp, "2")),
-        /ETH_AMOUNT_NOT_MATCH/
+      await truffleAssert.reverts(
+        DODOEthProxy.methods.depositEthAsBase(decimalStr("1"), ctx.QUOTE.options.address)
+                            .send(ctx.sendParam(lp, "2")),
+        "ETH_AMOUNT_NOT_MATCH"
       );
     });
   });

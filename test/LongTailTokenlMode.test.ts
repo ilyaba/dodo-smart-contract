@@ -56,26 +56,26 @@ describe("Trader", () => {
       // 10% depth
       // avg price = 11.137
       await ctx.DODO.methods.buyBaseToken(decimalStr("1000"), decimalStr("100000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("1000"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9988900000000000000000000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("1000"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9988900000000000000000000")
 
       // 20% depth
       // avg price = 12.475
       await ctx.DODO.methods.buyBaseToken(decimalStr("1000"), decimalStr("100000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("2000"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9975049999999999999970000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("2000"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9975049999999999999970000")
 
       // 50% depth
       // avg price = 19.9
       await ctx.DODO.methods.buyBaseToken(decimalStr("3000"), decimalStr("300000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("5000"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9900499999999999999970000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("5000"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9900499999999999999970000")
 
       // 80% depth
       // avg price = 49.6
       await ctx.DODO.methods.buyBaseToken(decimalStr("3000"), decimalStr("300000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("8000"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9603199999999999999970000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("8000"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9603199999999999999970000")
     })
 
     it("user has no pnl if buy and sell immediately", async () => {
@@ -87,8 +87,8 @@ describe("Trader", () => {
       await ctx.DODO.methods.sellBaseToken(decimalStr("1000"), decimalStr("0"), "0x").send(ctx.sendParam(trader))
 
       // no profit or loss (may have precision problems)
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), "0")
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9999999999999999999970000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), "0")
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9999999999999999999970000")
     })
   })
 })

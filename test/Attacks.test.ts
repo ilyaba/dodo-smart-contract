@@ -9,6 +9,8 @@ import { DODOContext, getDODOContext } from './utils/Context';
 import { decimalStr, gweiStr } from './utils/Converter';
 import BigNumber from "bignumber.js";
 import * as assert from "assert"
+import { truffleAssert } from './utils/TruffleReverts';
+//import { eventEmitted, createTransactionResult } from "truffle-assertions";
 
 let lp1: string
 let lp2: string
@@ -16,19 +18,19 @@ let trader: string
 let hacker: string
 
 async function init(ctx: DODOContext): Promise<void> {
-  await ctx.setOraclePrice(decimalStr("100"))
-  lp1 = ctx.spareAccounts[0]
-  lp2 = ctx.spareAccounts[1]
-  trader = ctx.spareAccounts[2]
-  hacker = ctx.spareAccounts[3]
-  await ctx.mintTestToken(lp1, decimalStr("100"), decimalStr("10000"))
-  await ctx.mintTestToken(lp2, decimalStr("100"), decimalStr("10000"))
-  await ctx.mintTestToken(trader, decimalStr("100"), decimalStr("10000"))
-  await ctx.mintTestToken(hacker, decimalStr("10000"), decimalStr("1000000"))
-  await ctx.approveDODO(lp1)
-  await ctx.approveDODO(lp2)
-  await ctx.approveDODO(trader)
-  await ctx.approveDODO(hacker)
+  await ctx.setOraclePrice(decimalStr("100"));
+  lp1 = ctx.spareAccounts[0];
+  lp2 = ctx.spareAccounts[1];
+  trader = ctx.spareAccounts[2];
+  hacker = ctx.spareAccounts[3];
+  await ctx.mintTestToken(lp1, decimalStr("100"), decimalStr("10000"));
+  await ctx.mintTestToken(lp2, decimalStr("100"), decimalStr("10000"));
+  await ctx.mintTestToken(trader, decimalStr("100"), decimalStr("10000"));
+  await ctx.mintTestToken(hacker, decimalStr("10000"), decimalStr("1000000"));
+  await ctx.approveDODO(lp1);
+  await ctx.approveDODO(lp2);
+  await ctx.approveDODO(trader);
+  await ctx.approveDODO(hacker);
 }
 
 describe("Attacks", () => {
@@ -37,7 +39,7 @@ describe("Attacks", () => {
   let ctx: DODOContext
 
   before(async () => {
-    ctx = await getDODOContext()
+    ctx = await getDODOContext();
     await init(ctx);
   })
 
@@ -141,14 +143,18 @@ describe("Attacks", () => {
       expected:
       revert tx
     */
-    it("front run", async () => {
-      await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1))
-      await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1))
-      await assert.rejects(
-        ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), /GAS_PRICE_EXCEED/
+    it.only("front run", async () => {
+      await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1));
+      await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1));
+
+      await truffleAssert.reverts(
+        ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
+        "GAS_PRICE_EXCEED"
       )
-      await assert.rejects(
-        ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), /GAS_PRICE_EXCEED/
+      
+      await truffleAssert.reverts(
+        ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
+        "GAS_PRICE_EXCEED"
       )
     })
 

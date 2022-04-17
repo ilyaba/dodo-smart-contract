@@ -8,6 +8,7 @@
 import { DODOContext, getDODOContext } from './utils/Context';
 import { decimalStr, gweiStr } from './utils/Converter';
 import * as assert from "assert"
+import {truffleAssert} from './utils/TruffleReverts';
 
 let lp: string
 let trader: string
@@ -55,18 +56,18 @@ describe("Trader", () => {
     it("trade with tiny slippage", async () => {
       // 10% depth avg price 1.000100000111135
       await ctx.DODO.methods.buyBaseToken(decimalStr("1000"), decimalStr("1001"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("11000"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "8999899999888865431655")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("11000"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "8999899999888865431655")
 
       // 99.9% depth avg price 1.00010109
       await ctx.DODO.methods.buyBaseToken(decimalStr("8990"), decimalStr("10000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("19990"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "8990031967806921648")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("19990"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "8990031967806921648")
 
       // sell to 99.9% depth avg price 0.9999
       await ctx.DODO.methods.sellBaseToken(decimalStr("19980"), decimalStr("19970"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("10"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "19986992950440794518402")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("10"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "19986992950440794518402")
     })
 
     it("huge sell trading amount", async () => {
@@ -75,29 +76,29 @@ describe("Trader", () => {
       await ctx.mintTestToken(trader, decimalStr("10000"), decimalStr("0"))
       await ctx.DODO.methods.sellBaseToken(decimalStr("20000"), decimalStr("0"), "0x").send(ctx.sendParam(trader))
 
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("0"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "19998999990001000029997")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("0"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "19998999990001000029997")
     })
 
     it("huge buy trading amount", async () => {
       // could not buy all base balance
-      await assert.rejects(
+      await truffleAssert.reverts(
         ctx.DODO.methods.buyBaseToken(decimalStr("10000"), decimalStr("10010"), "0x").send(ctx.sendParam(trader)),
-        /DODO_BASE_BALANCE_NOT_ENOUGH/
+        "DODO_BASE_BALANCE_NOT_ENOUGH"
       )
 
       // when buy amount close to base balance, price will increase quickly
       await ctx.mintTestToken(trader, decimalStr("0"), decimalStr("10000"))
       await ctx.DODO.methods.buyBaseToken(decimalStr("9999"), decimalStr("20000"), "0x").send(ctx.sendParam(trader))
-      assert.equal(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("19999"))
-      assert.equal(await ctx.QUOTE.methods.balanceOf(trader).call(), "9000000119999999900000")
+      assert.strictEqual(await ctx.BASE.methods.balanceOf(trader).call(), decimalStr("19999"))
+      assert.strictEqual(await ctx.QUOTE.methods.balanceOf(trader).call(), "9000000119999999900000")
     })
 
     it("tiny withdraw penalty", async () => {
       await ctx.DODO.methods.buyBaseToken(decimalStr("9990"), decimalStr("10000"), "0x").send(ctx.sendParam(trader))
 
       // penalty only 0.2% even if withdraw make pool utilization rate raise to 99.5%
-      assert.equal(await ctx.DODO.methods.getWithdrawBasePenalty(decimalStr("5")).call(), "9981967500000000")
+      assert.strictEqual(await ctx.DODO.methods.getWithdrawBasePenalty(decimalStr("5")).call(), "9981967500000000")
     })
   })
 })

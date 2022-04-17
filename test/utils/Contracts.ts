@@ -67,37 +67,50 @@ interface ContractJson {
 }
 
 export function getContractJSON(contractName: string): ContractJson {
-  var info = contractMap[contractName]
+  var info = contractMap[contractName];
   return {
     abi: info.abi,
     networks: info.networks,
     byteCode: info.bytecode
-  }
+  };
 }
 
-export function getContractWithAddress(contractName: string, address: string) {
-  var Json = getContractJSON(contractName)
-  var web3 = getDefaultWeb3()
-  return new web3.eth.Contract(Json.abi, address)
+export function getContractWithAddress(contractName: string, address: string) : Contract{
+  var Json = getContractJSON(contractName);
+  var web3 = getDefaultWeb3();
+  var c = new web3.eth.Contract(Json.abi, address);
+
+  c.handleRevert = true;
+
+  return c;
 }
 
 export function getDepolyedContract(contractName: string): Contract {
-  var Json = getContractJSON(contractName)
-  var networkId = process.env.NETWORK_ID
-  var deployedAddress = getContractJSON(contractName).networks[networkId].address
-  var web3 = getDefaultWeb3()
-  return new web3.eth.Contract(Json.abi, deployedAddress)
+  var Json = getContractJSON(contractName);
+  var networkId = process.env.NETWORK_ID;
+  var deployedAddress = getContractJSON(contractName).networks[networkId].address;
+  var web3 = getDefaultWeb3();
+  var c = new web3.eth.Contract(Json.abi, deployedAddress);
+
+  c.handleRevert = true;
+
+  return c;
 }
 
 export async function newContract(contractName: string, args: any[] = []): Promise<Contract> {
-  var web3 = getDefaultWeb3()
-  var Json = getContractJSON(contractName)
-  var contract = new web3.eth.Contract(Json.abi)
-  var adminAccount = (await web3.eth.getAccounts())[0]
+  var web3 = getDefaultWeb3();
+  var Json = getContractJSON(contractName);
+  var contract = new web3.eth.Contract(Json.abi);
+  var adminAccount = (await web3.eth.getAccounts())[0];
   let parameter = {
     from: adminAccount,
-    gas: process.env["COVERAGE"] ? 10000000000 : 7000000,
-    gasPrice: web3.utils.toHex(web3.utils.toWei('1', 'wei'))
-  }
-  return await contract.deploy({ data: Json.byteCode, arguments: args }).send(parameter)
+    gas: process.env["COVERAGE"] ? 10000000000 : 700000000,
+    gasPrice: web3.utils.toHex(web3.utils.toWei('10000000000', 'wei'))
+  };
+
+  let c = await contract.deploy({ data: Json.byteCode, arguments: args }).send(parameter);
+
+  c.handleRevert = true;
+  
+  return c;
 }

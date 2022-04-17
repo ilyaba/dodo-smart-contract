@@ -66,6 +66,7 @@ export class DODOContext {
   async init(config: DODOContextInitConfig) {
     this.EVM = new EVM();
     this.Web3 = getDefaultWeb3();
+
     var cloneFactory = await contracts.newContract(
       contracts.CLONE_FACTORY_CONTRACT_NAME
     );

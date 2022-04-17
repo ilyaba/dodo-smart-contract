@@ -80,47 +80,47 @@ describe("Lock DODO Token", () => {
     it("single lp deposit", async () => {
       await logGas(DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")), ctx.sendParam(lp1), "deposit")
       await ctx.EVM.fastMove(100)
-      assert.equal(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "3333333333333333333300")
-      assert.equal(await DODOMine.methods.getDlpMiningSpeed(BaseDLP.options.address).call(), "33333333333333333333")
-    })
+      assert.strictEqual(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "3333333333333333333300")
+      assert.strictEqual(await DODOMine.methods.getDlpMiningSpeed(BaseDLP.options.address).call(), "33333333333333333333")
+    });
 
     it("multi lp deposit", async () => {
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
       await ctx.EVM.fastMove(100)
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp2))
       await ctx.EVM.fastMove(100)
-      assert.equal(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "5033333333333333333200")
-      assert.equal(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp2).call(), "1666666666666666666600")
+      assert.strictEqual(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "5033333333333333333200")
+      assert.strictEqual(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp2).call(), "1666666666666666666600")
 
       await DODOMine.methods.deposit(QuoteDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
       await ctx.EVM.fastMove(100)
       await DODOMine.methods.deposit(QuoteDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp2))
       await ctx.EVM.fastMove(100)
-      assert.equal(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp1).call(), "10066666666666666666600")
-      assert.equal(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp2).call(), "3333333333333333333300")
+      assert.strictEqual(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp1).call(), "10066666666666666666600")
+      assert.strictEqual(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp2).call(), "3333333333333333333300")
 
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "18466666666666666666500")
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp2).call(), "8366666666666666666600")
-    })
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "18466666666666666666500")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp2).call(), "8366666666666666666600")
+    });
 
-    it.only("lp multi deposit and withdraw", async () => {
+    it("lp multi deposit and withdraw", async () => {
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp2))
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
       await ctx.EVM.fastMove(100)
       await logGas(DODOMine.methods.withdraw(BaseDLP.options.address, decimalStr("50")), ctx.sendParam(lp1), "withdraw")
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
-      assert.equal(await DODOToken.methods.balanceOf(lp1).call(), "1683333333333333333300")
-      assert.equal(await DODOMine.methods.getRealizedReward(lp1).call(), "1683333333333333333300")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
+      assert.strictEqual(await DODOToken.methods.balanceOf(lp1).call(), "1683333333333333333300")
+      assert.strictEqual(await DODOMine.methods.getRealizedReward(lp1).call(), "1683333333333333333300")
       await ctx.EVM.fastMove(100)
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("50")).send(ctx.sendParam(lp1))
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
-      assert.equal(await DODOToken.methods.balanceOf(lp1).call(), "2805555555555555555500")
-      assert.equal(await DODOMine.methods.getRealizedReward(lp1).call(), "2805555555555555555500")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
+      assert.strictEqual(await DODOToken.methods.balanceOf(lp1).call(), "2805555555555555555500")
+      assert.strictEqual(await DODOMine.methods.getRealizedReward(lp1).call(), "2805555555555555555500")
 
       var balance = await DODOMineReader.methods.getUserStakedBalance(DODOMine.options.address, ctx.DODO.options.address, lp1).call()
-      assert.equal(balance.baseBalance, decimalStr("100"))
-      assert.equal(balance.quoteBalance, decimalStr("0"))
-    })
+      assert.strictEqual(balance.baseBalance, decimalStr("100"))
+      assert.strictEqual(balance.quoteBalance, decimalStr("0"))
+    });
 
     it("lp claim", async () => {
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
@@ -132,17 +132,17 @@ describe("Lock DODO Token", () => {
       await ctx.EVM.fastMove(100)
 
       await logGas(DODOMine.methods.claim(BaseDLP.options.address), ctx.sendParam(lp1), "claim")
-      assert.equal(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "0")
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "3433333333333333333200")
-      assert.equal(await DODOMine.methods.getRealizedReward(lp1).call(), "1749999999999999999900")
-      assert.equal(await DODOToken.methods.balanceOf(lp1).call(), "1749999999999999999900")
+      assert.strictEqual(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp1).call(), "0")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "3433333333333333333200")
+      assert.strictEqual(await DODOMine.methods.getRealizedReward(lp1).call(), "1749999999999999999900")
+      assert.strictEqual(await DODOToken.methods.balanceOf(lp1).call(), "1749999999999999999900")
 
       await logGas(DODOMine.methods.claimAll(), ctx.sendParam(lp2), "claim 2 pool")
-      assert.equal(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp2).call(), "0")
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp2).call(), "0")
-      assert.equal(await DODOMine.methods.getRealizedReward(lp2).call(), "5133333333333333333200")
-      assert.equal(await DODOToken.methods.balanceOf(lp2).call(), "5133333333333333333200")
-    })
+      assert.strictEqual(await DODOMine.methods.getPendingReward(BaseDLP.options.address, lp2).call(), "0")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp2).call(), "0")
+      assert.strictEqual(await DODOMine.methods.getRealizedReward(lp2).call(), "5133333333333333333200")
+      assert.strictEqual(await DODOToken.methods.balanceOf(lp2).call(), "5133333333333333333200")
+    });
 
     it("lp emergency withdraw", async () => {
       await DODOMine.methods.deposit(QuoteDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
@@ -151,12 +151,12 @@ describe("Lock DODO Token", () => {
 
       await DODOMine.methods.emergencyWithdraw(QuoteDLP.options.address).send(ctx.sendParam(lp1))
 
-      assert.equal(await QuoteDLP.methods.balanceOf(lp1).call(), decimalStr("10000"))
-      assert.equal(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp1).call(), "0")
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
-      assert.equal(await DODOMine.methods.getRealizedReward(lp1).call(), "0")
-      assert.equal(await DODOToken.methods.balanceOf(lp1).call(), "0")
-    })
+      assert.strictEqual(await QuoteDLP.methods.balanceOf(lp1).call(), decimalStr("10000"))
+      assert.strictEqual(await DODOMine.methods.getPendingReward(QuoteDLP.options.address, lp1).call(), "0")
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "0")
+      assert.strictEqual(await DODOMine.methods.getRealizedReward(lp1).call(), "0")
+      assert.strictEqual(await DODOToken.methods.balanceOf(lp1).call(), "0")
+    });
 
     it("setLpToken", async () => {
       await DODOMine.methods.deposit(BaseDLP.options.address, decimalStr("100")).send(ctx.sendParam(lp1))
@@ -164,8 +164,8 @@ describe("Lock DODO Token", () => {
       await DODOMine.methods.setLpToken(BaseDLP.options.address, "2", true).send(ctx.sendParam(ctx.Deployer))
       await ctx.EVM.fastMove(100)
 
-      assert.equal(await DODOMine.methods.getAllPendingReward(lp1).call(), "8366666666666666666600")
-    })
+      assert.strictEqual(await DODOMine.methods.getAllPendingReward(lp1).call(), "8366666666666666666600")
+    });
 
   })
 
