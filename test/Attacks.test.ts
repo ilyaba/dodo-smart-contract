@@ -143,7 +143,7 @@ describe("Attacks", () => {
       expected:
       revert tx
     */
-    it.only("front run", async () => {
+    it("front run", async () => {
       await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1));
       await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1));
 
