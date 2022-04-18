@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -14,16 +14,16 @@ import {Storage} from "./impl/Storage.sol";
 import {Trader} from "./impl/Trader.sol";
 import {LiquidityProvider} from "./impl/LiquidityProvider.sol";
 import {Admin} from "./impl/Admin.sol";
-import {DODOLpToken} from "./impl/DODOLpToken.sol";
+import {AkwaLpToken} from "./impl/AkwaLpToken.sol";
 
 
 /**
- * @title DODO
+ * @title AKWA
  * @author DODO Breeder
  *
  * @notice Entrance for users
  */
-contract DODO is Admin, Trader, LiquidityProvider {
+contract AkwaPool is Admin, Trader, LiquidityProvider {
     function init(
         address owner,
         address supervisor,
@@ -36,7 +36,7 @@ contract DODO is Admin, Trader, LiquidityProvider {
         uint256 k,
         uint256 gasPriceLimit
     ) external {
-        require(!_INITIALIZED_, "DODO_INITIALIZED");
+        require(!_INITIALIZED_, "AKWA_POOL_ALREADY_INITIALIZED");
         _INITIALIZED_ = true;
 
         // constructor
@@ -66,9 +66,9 @@ contract DODO is Admin, Trader, LiquidityProvider {
         _K_ = k;
         _R_STATUS_ = Types.RStatus.ONE;
 
-        _BASE_CAPITAL_TOKEN_ = address(new DODOLpToken(_BASE_TOKEN_));
-        _QUOTE_CAPITAL_TOKEN_ = address(new DODOLpToken(_QUOTE_TOKEN_));
+        _BASE_CAPITAL_TOKEN_ = address(new AkwaLpToken(_BASE_TOKEN_));
+        _QUOTE_CAPITAL_TOKEN_ = address(new AkwaLpToken(_QUOTE_TOKEN_));
 
-        _checkDODOParameters();
+        _checkAKWAParameters();
     }
 }

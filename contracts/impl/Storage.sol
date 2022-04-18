@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -13,7 +13,7 @@ import {SafeMath} from "../lib/SafeMath.sol";
 import {DecimalMath} from "../lib/DecimalMath.sol";
 import {ReentrancyGuard} from "../lib/ReentrancyGuard.sol";
 import {IOracle} from "../intf/IOracle.sol";
-import {IDODOLpToken} from "../intf/IDODOLpToken.sol";
+import {IAkwaLpToken} from "../intf/IAkwaLpToken.sol";
 import {Types} from "../lib/Types.sol";
 
 
@@ -79,13 +79,13 @@ contract Storage is InitializableOwnable, ReentrancyGuard {
     }
 
     modifier notClosed() {
-        require(!_CLOSED_, "DODO_CLOSED");
+        require(!_CLOSED_, "AKWA_POOL_CLOSED");
         _;
     }
 
     // ============ Helper Functions ============
 
-    function _checkDODOParameters() internal view returns (uint256) {
+    function _checkAKWAParameters() internal view returns (uint256) {
         require(_K_ < DecimalMath.ONE, "K>=1");
         require(_K_ > 0, "K=0");
         require(_LP_FEE_RATE_.add(_MT_FEE_RATE_) < DecimalMath.ONE, "FEE_RATE>=1");
@@ -96,19 +96,19 @@ contract Storage is InitializableOwnable, ReentrancyGuard {
     }
 
     function getBaseCapitalBalanceOf(address lp) public view returns (uint256) {
-        return IDODOLpToken(_BASE_CAPITAL_TOKEN_).balanceOf(lp);
+        return IAkwaLpToken(_BASE_CAPITAL_TOKEN_).balanceOf(lp);
     }
 
     function getTotalBaseCapital() public view returns (uint256) {
-        return IDODOLpToken(_BASE_CAPITAL_TOKEN_).totalSupply();
+        return IAkwaLpToken(_BASE_CAPITAL_TOKEN_).totalSupply();
     }
 
     function getQuoteCapitalBalanceOf(address lp) public view returns (uint256) {
-        return IDODOLpToken(_QUOTE_CAPITAL_TOKEN_).balanceOf(lp);
+        return IAkwaLpToken(_QUOTE_CAPITAL_TOKEN_).balanceOf(lp);
     }
 
     function getTotalQuoteCapital() public view returns (uint256) {
-        return IDODOLpToken(_QUOTE_CAPITAL_TOKEN_).totalSupply();
+        return IAkwaLpToken(_QUOTE_CAPITAL_TOKEN_).totalSupply();
     }
 
     // ============ Version Control ============

@@ -1,13 +1,13 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
 
 import * as assert from 'assert';
 
-import { DODOContext, getDODOContext } from './utils/Context';
+import { AkwaContext, getAkwaContext } from './utils/Context';
 import { decimalStr } from './utils/Converter';
 
 //const truffleAssert = require('truffle-assertions');
@@ -18,7 +18,7 @@ let lp2: string;
 let trader: string;
 let tempAccount: string;
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   await ctx.setOraclePrice(decimalStr("100"));
   tempAccount = ctx.spareAccounts[5];
   lp1 = ctx.spareAccounts[0];
@@ -27,17 +27,17 @@ async function init(ctx: DODOContext): Promise<void> {
   await ctx.mintTestToken(lp1, decimalStr("100"), decimalStr("10000"));
   await ctx.mintTestToken(lp2, decimalStr("100"), decimalStr("10000"));
   await ctx.mintTestToken(trader, decimalStr("100"), decimalStr("10000"));
-  await ctx.approveDODO(lp1);
-  await ctx.approveDODO(lp2);
-  await ctx.approveDODO(trader);
+  await ctx.approveAkwaPool(lp1);
+  await ctx.approveAkwaPool(lp2);
+  await ctx.approveAkwaPool(trader);
 }
 
 describe("Admin", () => {
   let snapshotId: string;
-  let ctx: DODOContext;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
   });
 
@@ -51,59 +51,59 @@ describe("Admin", () => {
 
   describe("Settings", () => {
     it("set oracle", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setOracle(tempAccount)
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._ORACLE_().call(), tempAccount);
+      assert.strictEqual(await ctx.AkwaPool.methods._ORACLE_().call(), tempAccount);
     });
 
     it("set suprevisor", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setSupervisor(tempAccount)
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._SUPERVISOR_().call(), tempAccount);
+      assert.strictEqual(await ctx.AkwaPool.methods._SUPERVISOR_().call(), tempAccount);
     });
 
     it("set maintainer", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setMaintainer(tempAccount)
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._MAINTAINER_().call(), tempAccount);
+      assert.strictEqual(await ctx.AkwaPool.methods._MAINTAINER_().call(), tempAccount);
     });
 
     it("set liquidity provider fee rate", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setLiquidityProviderFeeRate(decimalStr("0.01"))
         .send(ctx.sendParam(ctx.Deployer));
       assert.strictEqual(
-        await ctx.DODO.methods._LP_FEE_RATE_().call(),
+        await ctx.AkwaPool.methods._LP_FEE_RATE_().call(),
         decimalStr("0.01")
       );
     });
 
     it("set maintainer fee rate", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setMaintainerFeeRate(decimalStr("0.01"))
         .send(ctx.sendParam(ctx.Deployer));
       assert.strictEqual(
-        await ctx.DODO.methods._MT_FEE_RATE_().call(),
+        await ctx.AkwaPool.methods._MT_FEE_RATE_().call(),
         decimalStr("0.01")
       );
     });
 
     it("set k", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setK(decimalStr("0.2"))
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._K_().call(), decimalStr("0.2"));
+      assert.strictEqual(await ctx.AkwaPool.methods._K_().call(), decimalStr("0.2"));
     });
 
     it("set gas price limit", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setGasPriceLimit(decimalStr("100"))
         .send(ctx.sendParam(ctx.Deployer));
       assert.strictEqual(
-        await ctx.DODO.methods._GAS_PRICE_LIMIT_().call(),
+        await ctx.AkwaPool.methods._GAS_PRICE_LIMIT_().call(),
         decimalStr("100")
       );
     });
@@ -111,59 +111,59 @@ describe("Admin", () => {
 
   describe("Controls", () => {
     it("control flow", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .disableBaseDeposit()
         .send(ctx.sendParam(ctx.Supervisor));
 
-      await truffleAssert.reverts(ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1)),
+      await truffleAssert.reverts(ctx.AkwaPool.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1)),
                                   "DEPOSIT_BASE_NOT_ALLOWED");
                                   
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .enableBaseDeposit()
         .send(ctx.sendParam(ctx.Deployer));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
 
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
         decimalStr("10")
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .disableQuoteDeposit()
         .send(ctx.sendParam(ctx.Supervisor));
 
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .depositQuote(decimalStr("1000"))
           .send(ctx.sendParam(lp1)),
         "DEPOSIT_QUOTE_NOT_ALLOWED"
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .enableQuoteDeposit()
         .send(ctx.sendParam(ctx.Deployer));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("10"))
         .send(ctx.sendParam(lp1));
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
         decimalStr("10")
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .disableTrading()
         .send(ctx.sendParam(ctx.Supervisor));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .buyBaseToken(decimalStr("1"), decimalStr("200"), "0x")
           .send(ctx.sendParam(trader)),
         "TRADE_NOT_ALLOWED"
       );
 
-      await ctx.DODO.methods.enableTrading().send(ctx.sendParam(ctx.Deployer));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods.enableTrading().send(ctx.sendParam(ctx.Deployer));
+      await ctx.AkwaPool.methods
         .buyBaseToken(decimalStr("1"), decimalStr("200"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -174,142 +174,142 @@ describe("Admin", () => {
 
     it("control flow premission", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods.setGasPriceLimit("1").send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.setGasPriceLimit("1").send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.disableTrading().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.disableTrading().send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.disableQuoteDeposit().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.disableQuoteDeposit().send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.disableBaseDeposit().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.disableBaseDeposit().send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.disableBuying().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.disableBuying().send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.disableSelling().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.disableSelling().send(ctx.sendParam(trader)),
         "NOT_SUPERVISOR_OR_OWNER"
       );
 
       await truffleAssert.reverts(
-        ctx.DODO.methods.setOracle(trader).send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.setOracle(trader).send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.setSupervisor(trader).send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.setSupervisor(trader).send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.setMaintainer(trader).send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.setMaintainer(trader).send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setLiquidityProviderFeeRate(decimalStr("0.1"))
           .send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setMaintainerFeeRate(decimalStr("0.1"))
           .send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.setK(decimalStr("0.1")).send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.setK(decimalStr("0.1")).send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
 
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableTrading().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableTrading().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableQuoteDeposit().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableQuoteDeposit().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableBaseDeposit().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableBaseDeposit().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableBuying().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableBuying().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableSelling().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableSelling().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setBaseBalanceLimit(decimalStr("0"))
           .send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setQuoteBalanceLimit(decimalStr("0"))
           .send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableTrading().send(ctx.sendParam(trader)),
+        ctx.AkwaPool.methods.enableTrading().send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
     });
 
     it("advanced controls", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("10"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .disableBuying()
         .send(ctx.sendParam(ctx.Supervisor));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .buyBaseToken(decimalStr("1"), decimalStr("200"), "0x")
           .send(ctx.sendParam(trader)),
         "BUYING_NOT_ALLOWED"
       );
-      await ctx.DODO.methods.enableBuying().send(ctx.sendParam(ctx.Deployer));
+      await ctx.AkwaPool.methods.enableBuying().send(ctx.sendParam(ctx.Deployer));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .disableSelling()
         .send(ctx.sendParam(ctx.Supervisor));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .sellBaseToken(decimalStr("1"), decimalStr("200"), "0x")
           .send(ctx.sendParam(trader)),
         "SELLING_NOT_ALLOWED"
       );
-      await ctx.DODO.methods.enableSelling().send(ctx.sendParam(ctx.Deployer));
+      await ctx.AkwaPool.methods.enableSelling().send(ctx.sendParam(ctx.Deployer));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setBaseBalanceLimit(decimalStr("0"))
         .send(ctx.sendParam(ctx.Deployer));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .depositBase(decimalStr("1000"))
           .send(ctx.sendParam(lp1)),
         "BASE_BALANCE_LIMIT_EXCEEDED"
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .setQuoteBalanceLimit(decimalStr("0"))
         .send(ctx.sendParam(ctx.Deployer));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .depositQuote(decimalStr("1000"))
           .send(ctx.sendParam(lp1)),
         "QUOTE_BALANCE_LIMIT_EXCEEDED"
@@ -319,18 +319,18 @@ describe("Admin", () => {
 
   describe("Final settlement", () => {
     it("final settlement when R is ONE", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("1000"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1));
 
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(lp1).call(),
@@ -343,22 +343,22 @@ describe("Admin", () => {
     });
 
     it("final settlement when R is ABOVE ONE", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("1000"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken(decimalStr("5"), decimalStr("1000"), "0x")
         .send(ctx.sendParam(trader));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "0");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "0");
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1));
 
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(lp1).call(),
@@ -371,22 +371,22 @@ describe("Admin", () => {
     });
 
     it("final settlement when R is BELOW ONE", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("1000"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .sellBaseToken(decimalStr("5"), decimalStr("100"), "0x")
         .send(ctx.sendParam(trader));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "0");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "0");
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1));
 
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(lp1).call(),
@@ -399,15 +399,15 @@ describe("Admin", () => {
     });
 
     it("final settlement when only deposit base", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1));
 
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(lp1).call(),
@@ -416,15 +416,15 @@ describe("Admin", () => {
     });
 
     it("final settlement when only deposit quote", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("1000"))
         .send(ctx.sendParam(lp1));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1));
 
       assert.strictEqual(
         await ctx.QUOTE.methods.balanceOf(lp1).call(),
@@ -434,109 +434,109 @@ describe("Admin", () => {
 
     it("final settlement revert cases", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp1)),
-        "DODO_NOT_CLOSED"
+        ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp1)),
+        "AKWA_POOL_NOT_CLOSED"
       );
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("500"))
         .send(ctx.sendParam(lp2));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken(decimalStr("5"), decimalStr("1000"), "0x")
         .send(ctx.sendParam(trader));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .finalSettlement()
         .send(ctx.sendParam(ctx.Deployer));
       await truffleAssert.reverts(
-        ctx.DODO.methods.finalSettlement().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.finalSettlement().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
 
       await truffleAssert.reverts(
-        ctx.DODO.methods.withdrawAllBase().send(ctx.sendParam(lp1)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.withdrawAllBase().send(ctx.sendParam(lp1)),
+        "AKWA_POOL_CLOSED"
       )
       await truffleAssert.reverts(
-        ctx.DODO.methods.withdrawAllQuote().send(ctx.sendParam(lp1)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.withdrawAllQuote().send(ctx.sendParam(lp1)),
+        "AKWA_POOL_CLOSED"
       )
 
-      await ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp2));
+      await ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp2));
       await truffleAssert.reverts(
-        ctx.DODO.methods.claimAssets().send(ctx.sendParam(lp2)),
+        ctx.AkwaPool.methods.claimAssets().send(ctx.sendParam(lp2)),
         "ALREADY_CLAIMED"
       );
 
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableQuoteDeposit().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.enableQuoteDeposit().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableBaseDeposit().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.enableBaseDeposit().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableTrading().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.enableTrading().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableBuying().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.enableBuying().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods.enableSelling().send(ctx.sendParam(ctx.Deployer)),
-        "DODO_CLOSED"
+        ctx.AkwaPool.methods.enableSelling().send(ctx.sendParam(ctx.Deployer)),
+        "AKWA_POOL_CLOSED"
       );
     });
   });
 
   describe("donate", () => {
     it("donate quote & base token", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("10"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositBase(decimalStr("20"))
         .send(ctx.sendParam(lp2));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("1000"))
         .send(ctx.sendParam(lp1));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .depositQuote(decimalStr("2000"))
         .send(ctx.sendParam(lp2));
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .donateBaseToken(decimalStr("2"))
         .send(ctx.sendParam(trader));
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .donateQuoteToken(decimalStr("500"))
         .send(ctx.sendParam(trader));
 
       assert.strictEqual(
-        await ctx.DODO.methods.getLpBaseBalance(lp1).call(),
+        await ctx.AkwaPool.methods.getLpBaseBalance(lp1).call(),
         "10666666666666666666"
       );
       assert.strictEqual(
-        await ctx.DODO.methods.getLpQuoteBalance(lp1).call(),
+        await ctx.AkwaPool.methods.getLpQuoteBalance(lp1).call(),
         "1166666666666666666666"
       );
       assert.strictEqual(
-        await ctx.DODO.methods.getLpBaseBalance(lp2).call(),
+        await ctx.AkwaPool.methods.getLpBaseBalance(lp2).call(),
         "21333333333333333333"
       );
       assert.strictEqual(
-        await ctx.DODO.methods.getLpQuoteBalance(lp2).call(),
+        await ctx.AkwaPool.methods.getLpQuoteBalance(lp2).call(),
         "2333333333333333333333"
       );
 
-      await ctx.DODO.methods.withdrawAllBase().send(ctx.sendParam(lp1));
-      await ctx.DODO.methods.withdrawAllBase().send(ctx.sendParam(lp2));
+      await ctx.AkwaPool.methods.withdrawAllBase().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.withdrawAllBase().send(ctx.sendParam(lp2));
 
-      await ctx.DODO.methods.withdrawAllQuote().send(ctx.sendParam(lp1));
-      await ctx.DODO.methods.withdrawAllQuote().send(ctx.sendParam(lp2));
+      await ctx.AkwaPool.methods.withdrawAllQuote().send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.withdrawAllQuote().send(ctx.sendParam(lp2));
 
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(lp1).call(),
@@ -560,21 +560,21 @@ describe("Admin", () => {
   describe("retrieve", () => {
     it("retrieve base token", async () => {
       await ctx.BASE.methods
-        .transfer(ctx.DODO.options.address, decimalStr("1"))
+        .transfer(ctx.AkwaPool.options.address, decimalStr("1"))
         .send(ctx.sendParam(trader));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .retrieve(ctx.BASE.options.address, decimalStr("1"))
           .send(ctx.sendParam(trader)),
         "NOT_OWNER"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .retrieve(ctx.BASE.options.address, decimalStr("2"))
           .send(ctx.sendParam(ctx.Deployer)),
-        "DODO_BASE_BALANCE_NOT_ENOUGH"
+        "AKWA_POOL_BASE_BALANCE_NOT_ENOUGH"
       );
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .retrieve(ctx.BASE.options.address, decimalStr("1"))
         .send(ctx.sendParam(ctx.Deployer));
       assert.strictEqual(
@@ -585,15 +585,15 @@ describe("Admin", () => {
 
     it("retrieve quote token", async () => {
       await ctx.QUOTE.methods
-        .transfer(ctx.DODO.options.address, decimalStr("1"))
+        .transfer(ctx.AkwaPool.options.address, decimalStr("1"))
         .send(ctx.sendParam(trader));
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .retrieve(ctx.QUOTE.options.address, decimalStr("2"))
           .send(ctx.sendParam(ctx.Deployer)),
-        "DODO_QUOTE_BALANCE_NOT_ENOUGH"
+        "AKWA_POOL_QUOTE_BALANCE_NOT_ENOUGH"
       );
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .retrieve(ctx.QUOTE.options.address, decimalStr("1"))
         .send(ctx.sendParam(ctx.Deployer));
       assert.strictEqual(
@@ -606,13 +606,13 @@ describe("Admin", () => {
   describe("revert cases", () => {
     it("k revert cases", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setK(decimalStr("1"))
           .send(ctx.sendParam(ctx.Deployer)),
         "K>=1"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setK(decimalStr("0"))
           .send(ctx.sendParam(ctx.Deployer)),
         "K=0"
@@ -621,13 +621,13 @@ describe("Admin", () => {
 
     it("fee revert cases", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setLiquidityProviderFeeRate(decimalStr("0.999"))
           .send(ctx.sendParam(ctx.Deployer)),
         "FEE_RATE>=1"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .setMaintainerFeeRate(decimalStr("0.998"))
           .send(ctx.sendParam(ctx.Deployer)),
         "FEE_RATE>=1"

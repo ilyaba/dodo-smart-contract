@@ -1,21 +1,21 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
 
-import { DODOContext, getDODOContext } from './utils/Context';
+import { AkwaContext, getAkwaContext } from './utils/Context';
 import { decimalStr, MAX_UINT256 } from './utils/Converter';
 // import * as assert from "assert"
-import { newContract, DODO_TOKEN_CONTRACT_NAME, LOCKED_TOKEN_VAULT_CONTRACT_NAME } from './utils/Contracts';
+import { newContract, AKWA_TOKEN_CONTRACT_NAME, LOCKED_TOKEN_VAULT_CONTRACT_NAME } from './utils/Contracts';
 import { Contract } from 'web3-eth-contract';
 import * as assert from 'assert';
 import BigNumber from 'bignumber.js';
 import { logGas } from './utils/Log';
 import {truffleAssert} from './utils/TruffleReverts';
 
-let DODOToken: Contract;
+let AKWAToken: Contract;
 let LockedTokenVault: Contract;
 let initTime: any;
 
@@ -23,28 +23,28 @@ let u1: string;
 let u2: string;
 let u3: string;
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   u1 = ctx.spareAccounts[0];
   u2 = ctx.spareAccounts[1];
   u3 = ctx.spareAccounts[2];
 
   initTime = (await ctx.Web3.eth.getBlock(await ctx.Web3.eth.getBlockNumber())).timestamp;
-  DODOToken = await newContract(DODO_TOKEN_CONTRACT_NAME);
+  AKWAToken = await newContract(AKWA_TOKEN_CONTRACT_NAME);
 
   // release after 1 day, cliff 10% and vest in 1 day
-  LockedTokenVault = await newContract(LOCKED_TOKEN_VAULT_CONTRACT_NAME, [DODOToken.options.address, initTime + 86400, 86400, decimalStr("0.1")]);
+  LockedTokenVault = await newContract(LOCKED_TOKEN_VAULT_CONTRACT_NAME, [AKWAToken.options.address, initTime + 86400, 86400, decimalStr("0.1")]);
 
-  await DODOToken.methods.approve(LockedTokenVault.options.address, MAX_UINT256).send(ctx.sendParam(ctx.Deployer));
+  await AKWAToken.methods.approve(LockedTokenVault.options.address, MAX_UINT256).send(ctx.sendParam(ctx.Deployer));
   await LockedTokenVault.methods.deposit(decimalStr("10000")).send(ctx.sendParam(ctx.Deployer));
 }
 
 describe("Lock DODO Token", () => {
 
   let snapshotId: string;
-  let ctx: DODOContext;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
   })
 
@@ -94,18 +94,18 @@ describe("Lock DODO Token", () => {
       await LockedTokenVault.methods.claim().send(ctx.sendParam(u1))
       assert.strictEqual(await LockedTokenVault.methods.getOriginBalance(u1).call(), decimalStr("100"))
       assert.strictEqual(await LockedTokenVault.methods.getClaimableBalance(u1).call(), "0")
-      assert.ok(approxEqual(await DODOToken.methods.balanceOf(u1).call(), decimalStr("10")))
+      assert.ok(approxEqual(await AKWAToken.methods.balanceOf(u1).call(), decimalStr("10")))
 
       await ctx.EVM.increaseTime(30000)
       await LockedTokenVault.methods.claim().send(ctx.sendParam(u1))
       assert.strictEqual(await LockedTokenVault.methods.getClaimableBalance(u1).call(), "0")
       assert.ok(approxEqual(await LockedTokenVault.methods.getRemainingBalance(u1).call(), decimalStr("58.75")))
-      assert.ok(approxEqual(await DODOToken.methods.balanceOf(u1).call(), decimalStr("41.25")))
+      assert.ok(approxEqual(await AKWAToken.methods.balanceOf(u1).call(), decimalStr("41.25")))
 
       await LockedTokenVault.methods.claim().send(ctx.sendParam(u2))
       assert.strictEqual(await LockedTokenVault.methods.getClaimableBalance(u2).call(), "0")
       assert.ok(approxEqual(await LockedTokenVault.methods.getRemainingBalance(u2).call(), decimalStr("117.5")))
-      assert.ok(approxEqual(await DODOToken.methods.balanceOf(u2).call(), decimalStr("82.5")))
+      assert.ok(approxEqual(await AKWAToken.methods.balanceOf(u2).call(), decimalStr("82.5")))
     })
 
     it("recall & transfer", async () => {
@@ -125,7 +125,7 @@ describe("Lock DODO Token", () => {
       await LockedTokenVault.methods.claim().send(ctx.sendParam(u2))
       assert.strictEqual(await LockedTokenVault.methods.getClaimableBalance(u2).call(), "0")
       assert.ok(approxEqual(await LockedTokenVault.methods.getRemainingBalance(u2).call(), decimalStr("176.25")))
-      assert.ok(approxEqual(await DODOToken.methods.balanceOf(u2).call(), decimalStr("123.75")))
+      assert.ok(approxEqual(await AKWAToken.methods.balanceOf(u2).call(), decimalStr("123.75")))
 
       // transfer from u2 to u3
       await ctx.EVM.increaseTime(30000)
@@ -134,7 +134,7 @@ describe("Lock DODO Token", () => {
       await LockedTokenVault.methods.claim().send(ctx.sendParam(u3))
       assert.strictEqual(await LockedTokenVault.methods.getClaimableBalance(u3).call(), "0")
       assert.ok(approxEqual(await LockedTokenVault.methods.getRemainingBalance(u3).call(), decimalStr("82.5")))
-      assert.ok(approxEqual(await DODOToken.methods.balanceOf(u3).call(), decimalStr("93.75")))
+      assert.ok(approxEqual(await AKWAToken.methods.balanceOf(u3).call(), decimalStr("93.75")))
 
       // transfer from u3 to u1
       await LockedTokenVault.methods.transferLockedToken(u1).send(ctx.sendParam(u3))

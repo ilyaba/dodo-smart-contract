@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -9,10 +9,11 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 import {Ownable} from "../lib/Ownable.sol";
-import {IDODO} from "../intf/IDODO.sol";
+import {IAkwaPool} from "../intf/IAkwaPool.sol";
 import {IERC20} from "../intf/IERC20.sol";
 import {SafeERC20} from "../lib/SafeERC20.sol";
 import {SafeMath} from "../lib/SafeMath.sol";
+import {IAKWACallee} from "../intf/IAKWACallee.sol";
 
 interface IUniswapV2Pair {
     function token0() external view returns (address);
@@ -36,23 +37,23 @@ interface IUniswapV2Pair {
     ) external;
 }
 
-contract UniswapArbitrageur {
+contract UniswapArbitrageur is IAKWACallee {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     address public _UNISWAP_;
-    address public _DODO_;
+    address public _AKWA_;
     address public _BASE_;
     address public _QUOTE_;
 
-    bool public _REVERSE_; // true if dodo.baseToken=uniswap.token0
+    bool public _REVERSE_; // true if akwa.baseToken=uniswap.token0
 
-    constructor(address _uniswap, address _dodo) public {
+    constructor(address _uniswap, address _akwaPool) public {
         _UNISWAP_ = _uniswap;
-        _DODO_ = _dodo;
+        _AKWA_ = _akwaPool;
 
-        _BASE_ = IDODO(_DODO_)._BASE_TOKEN_();
-        _QUOTE_ = IDODO(_DODO_)._QUOTE_TOKEN_();
+        _BASE_ = IAkwaPool(_AKWA_)._BASE_TOKEN_();
+        _QUOTE_ = IAkwaPool(_AKWA_)._QUOTE_TOKEN_();
 
         address token0 = IUniswapV2Pair(_UNISWAP_).token0();
         address token1 = IUniswapV2Pair(_UNISWAP_).token1();
@@ -62,43 +63,43 @@ contract UniswapArbitrageur {
         } else if (token0 == _QUOTE_ && token1 == _BASE_) {
             _REVERSE_ = true;
         } else {
-            require(true, "DODO_UNISWAP_NOT_MATCH");
+            require(true, "AKWA_UNISWAP_NOT_MATCH");
         }
 
-        IERC20(_BASE_).approve(_DODO_, uint256(-1));
-        IERC20(_QUOTE_).approve(_DODO_, uint256(-1));
+        IERC20(_BASE_).approve(_AKWA_, uint256(-1));
+        IERC20(_QUOTE_).approve(_AKWA_, uint256(-1));
     }
 
     function executeBuyArbitrage(uint256 baseAmount) external returns (uint256 quoteProfit) {
-        IDODO(_DODO_).buyBaseToken(baseAmount, uint256(-1), "0xd");
+        IAkwaPool(_AKWA_).buyBaseToken(baseAmount, uint256(-1), "0xd");
         quoteProfit = IERC20(_QUOTE_).balanceOf(address(this));
         IERC20(_QUOTE_).transfer(msg.sender, quoteProfit);
         return quoteProfit;
     }
 
     function executeSellArbitrage(uint256 baseAmount) external returns (uint256 baseProfit) {
-        IDODO(_DODO_).sellBaseToken(baseAmount, 0, "0xd");
+        IAkwaPool(_AKWA_).sellBaseToken(baseAmount, 0, "0xd");
         baseProfit = IERC20(_BASE_).balanceOf(address(this));
         IERC20(_BASE_).transfer(msg.sender, baseProfit);
         return baseProfit;
     }
 
-    function dodoCall(
-        bool isDODOBuy,
+    function akwaCall(
+        bool isAKWABuy,
         uint256 baseAmount,
         uint256 quoteAmount,
         bytes calldata
-    ) external {
-        require(msg.sender == _DODO_, "WRONG_DODO");
+    ) external override {
+        require(msg.sender == _AKWA_, "WRONG_AKWA");
         if (_REVERSE_) {
-            _inverseArbitrage(isDODOBuy, baseAmount, quoteAmount);
+            _inverseArbitrage(isAKWABuy, baseAmount, quoteAmount);
         } else {
-            _arbitrage(isDODOBuy, baseAmount, quoteAmount);
+            _arbitrage(isAKWABuy, baseAmount, quoteAmount);
         }
     }
 
     function _inverseArbitrage(
-        bool isDODOBuy,
+        bool isAKWABuy,
         uint256 baseAmount,
         uint256 quoteAmount
     ) internal {
@@ -107,7 +108,7 @@ contract UniswapArbitrageur {
         uint256 token1Balance = uint256(_reserve1);
         uint256 token0Amount;
         uint256 token1Amount;
-        if (isDODOBuy) {
+        if (isAKWABuy) {
             IERC20(_BASE_).transfer(_UNISWAP_, baseAmount);
             // transfer token1 into uniswap
             uint256 newToken0Balance = token0Balance.mul(token1Balance).div(
@@ -129,7 +130,7 @@ contract UniswapArbitrageur {
     }
 
     function _arbitrage(
-        bool isDODOBuy,
+        bool isAKWABuy,
         uint256 baseAmount,
         uint256 quoteAmount
     ) internal {
@@ -138,7 +139,7 @@ contract UniswapArbitrageur {
         uint256 token1Balance = uint256(_reserve1);
         uint256 token0Amount;
         uint256 token1Amount;
-        if (isDODOBuy) {
+        if (isAKWABuy) {
             IERC20(_BASE_).transfer(_UNISWAP_, baseAmount);
             // transfer token0 into uniswap
             uint256 newToken1Balance = token1Balance.mul(token0Balance).div(

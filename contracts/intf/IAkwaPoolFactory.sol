@@ -9,6 +9,7 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 
-interface IOracle {
-    function getPrice() external view returns (uint256);
+interface IAkwaPoolFactory {
+    function getAkwaPool(address baseToken, address quoteToken) external view returns (address);
 }
+

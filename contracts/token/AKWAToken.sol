@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance.
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -8,23 +8,22 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
-import {IERC20} from "../intf/IERC20.sol";
 import {SafeMath} from "../lib/SafeMath.sol";
-import {Ownable} from "../lib/Ownable.sol";
+
 
 /**
- * @title DODOLpToken
+ * @title DODO Token
  * @author DODO Breeder
- *
- * @notice Tokenize liquidity pool assets. An ordinary ERC20 contract with mint and burn functions
  */
-contract DODOLpToken is Ownable {
+contract AKWAToken {
     using SafeMath for uint256;
 
-    string public symbol = "DLP";
-    address public originToken;
+    string public symbol = "DODO";
+    string public name = "DODO bird";
 
-    uint256 public totalSupply;
+    uint256 public decimals = 18;
+    uint256 public totalSupply = 1000000000 * 10**18; // 1 Billion
+
     mapping(address => uint256) internal balances;
     mapping(address => mapping(address => uint256)) internal allowed;
 
@@ -34,23 +33,10 @@ contract DODOLpToken is Ownable {
 
     event Approval(address indexed owner, address indexed spender, uint256 amount);
 
-    event Mint(address indexed user, uint256 value);
-
-    event Burn(address indexed user, uint256 value);
-
     // ============ Functions ============
 
-    constructor(address _originToken) public {
-        originToken = _originToken;
-    }
-
-    function name() public view returns (string memory) {
-        string memory lpTokenSuffix = "_DODO_LP_TOKEN_";
-        return string(abi.encodePacked(IERC20(originToken).name(), lpTokenSuffix));
-    }
-
-    function decimals() public view returns (uint8) {
-        return IERC20(originToken).decimals();
+    constructor() public {
+        balances[msg.sender] = totalSupply;
     }
 
     /**
@@ -116,19 +102,5 @@ contract DODOLpToken is Ownable {
      */
     function allowance(address owner, address spender) public view returns (uint256) {
         return allowed[owner][spender];
-    }
-
-    function mint(address user, uint256 value) external onlyOwner {
-        balances[user] = balances[user].add(value);
-        totalSupply = totalSupply.add(value);
-        emit Mint(user, value);
-        emit Transfer(address(0), user, value);
-    }
-
-    function burn(address user, uint256 value) external onlyOwner {
-        balances[user] = balances[user].sub(value);
-        totalSupply = totalSupply.sub(value);
-        emit Burn(user, value);
-        emit Transfer(user, address(0), value);
     }
 }

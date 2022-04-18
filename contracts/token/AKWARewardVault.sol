@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance.
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -13,12 +13,12 @@ import {SafeERC20} from "../lib/SafeERC20.sol";
 import {IERC20} from "../intf/IERC20.sol";
 
 
-interface IDODORewardVault {
+interface IAKWARewardVault {
     function reward(address to, uint256 amount) external;
 }
 
 
-contract DODORewardVault is Ownable {
+contract AKWARewardVault is Ownable {
     using SafeERC20 for IERC20;
 
     address public dodoToken;

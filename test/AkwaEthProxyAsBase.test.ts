@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -11,9 +11,9 @@ import { Contract } from 'web3-eth-contract';
 import {truffleAssert} from './utils/TruffleReverts';
 
 import {
-  DefaultDODOContextInitConfig,
-  DODOContext,
-  getDODOContext,
+  DefaultAkwaContextInitConfig,
+  AkwaContext,
+  getAkwaContext,
 } from './utils/Context';
 import * as contracts from './utils/Contracts';
 import { decimalStr, MAX_UINT256 } from './utils/Converter';
@@ -21,47 +21,47 @@ import { logGas } from './utils/Log';
 
 let lp: string;
 let trader: string;
-let DODOEthProxy: Contract;
+let AKWAEthProxy: Contract;
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   // switch ctx to eth proxy mode
   const WETH = await contracts.newContract(contracts.WETH_CONTRACT_NAME);
-  await ctx.DODOZoo.methods
-    .breedDODO(
+  await ctx.AkwaPoolFactory.methods
+    .createNewAkwaPool(
       ctx.Maintainer,
       WETH.options.address,
       ctx.QUOTE.options.address,
       ctx.ORACLE.options.address,
-      DefaultDODOContextInitConfig.lpFeeRate,
-      DefaultDODOContextInitConfig.mtFeeRate,
-      DefaultDODOContextInitConfig.k,
-      DefaultDODOContextInitConfig.gasPriceLimit
+      DefaultAkwaContextInitConfig.lpFeeRate,
+      DefaultAkwaContextInitConfig.mtFeeRate,
+      DefaultAkwaContextInitConfig.k,
+      DefaultAkwaContextInitConfig.gasPriceLimit
     )
     .send(ctx.sendParam(ctx.Deployer));
 
-  ctx.DODO = contracts.getContractWithAddress(
-    contracts.DODO_CONTRACT_NAME,
-    await ctx.DODOZoo.methods
-      .getDODO(WETH.options.address, ctx.QUOTE.options.address)
+  ctx.AkwaPool = contracts.getContractWithAddress(
+    contracts.AKWA_POOL_CONTRACT_NAME,
+    await ctx.AkwaPoolFactory.methods
+      .getAkwaPool(WETH.options.address, ctx.QUOTE.options.address)
       .call()
   );
-  await ctx.DODO.methods.enableBaseDeposit().send(ctx.sendParam(ctx.Deployer));
-  await ctx.DODO.methods.enableQuoteDeposit().send(ctx.sendParam(ctx.Deployer));
-  await ctx.DODO.methods.enableTrading().send(ctx.sendParam(ctx.Deployer));
+  await ctx.AkwaPool.methods.enableBaseDeposit().send(ctx.sendParam(ctx.Deployer));
+  await ctx.AkwaPool.methods.enableQuoteDeposit().send(ctx.sendParam(ctx.Deployer));
+  await ctx.AkwaPool.methods.enableTrading().send(ctx.sendParam(ctx.Deployer));
 
   ctx.BASE = WETH;
 
-  DODOEthProxy = await contracts.newContract(
+  AKWAEthProxy = await contracts.newContract(
     contracts.DODO_ETH_PROXY_CONTRACT_NAME,
-    [ctx.DODOZoo.options.address, WETH.options.address]
+    [ctx.AkwaPoolFactory.options.address, WETH.options.address]
   );
 
   // env
   lp = ctx.spareAccounts[0];
   trader = ctx.spareAccounts[1];
   await ctx.setOraclePrice(decimalStr("100"));
-  await ctx.approveDODO(lp);
-  await ctx.approveDODO(trader);
+  await ctx.approveAkwaPool(lp);
+  await ctx.approveAkwaPool(trader);
 
   await ctx.QUOTE.methods
     .mint(lp, decimalStr("1000"))
@@ -70,30 +70,30 @@ async function init(ctx: DODOContext): Promise<void> {
     .mint(trader, decimalStr("1000"))
     .send(ctx.sendParam(ctx.Deployer));
   await ctx.QUOTE.methods
-    .approve(DODOEthProxy.options.address, MAX_UINT256)
+    .approve(AKWAEthProxy.options.address, MAX_UINT256)
     .send(ctx.sendParam(trader));
 
-  await ctx.DODO.methods
+  await ctx.AkwaPool.methods
     .depositQuote(decimalStr("1000"))
     .send(ctx.sendParam(lp));
 }
 
-describe("DODO ETH PROXY", () => {
+describe("Akwa ETH PROXY", () => {
   let snapshotId: string;
-  let ctx: DODOContext;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
     await ctx.QUOTE.methods
-      .approve(DODOEthProxy.options.address, MAX_UINT256)
+      .approve(AKWAEthProxy.options.address, MAX_UINT256)
       .send(ctx.sendParam(trader));
   });
 
   beforeEach(async () => {
     snapshotId = await ctx.EVM.snapshot();
     const depositAmount = "10";
-    await DODOEthProxy.methods
+    await AKWAEthProxy.methods
       .depositEthAsBase(decimalStr(depositAmount), ctx.QUOTE.options.address)
       .send(ctx.sendParam(lp, depositAmount));
   });
@@ -106,7 +106,7 @@ describe("DODO ETH PROXY", () => {
     it("buy", async () => {
       const buyAmount = "1";
       await logGas(
-        DODOEthProxy.methods.buyEthWithToken(
+        AKWAEthProxy.methods.buyEthWithToken(
           ctx.QUOTE.options.address,
           decimalStr(buyAmount),
           decimalStr("200")
@@ -115,7 +115,7 @@ describe("DODO ETH PROXY", () => {
         "buy ETH with token directly"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("8.999")
       );
       assert.strictEqual(
@@ -126,7 +126,7 @@ describe("DODO ETH PROXY", () => {
     it("sell", async () => {
       const sellAmount = "1";
       await logGas(
-        DODOEthProxy.methods.sellEthToToken(
+        AKWAEthProxy.methods.sellEthToToken(
           ctx.QUOTE.options.address,
           decimalStr(sellAmount),
           decimalStr("50")
@@ -135,7 +135,7 @@ describe("DODO ETH PROXY", () => {
         "sell ETH to token directly"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("11")
       );
       assert.strictEqual(
@@ -148,7 +148,7 @@ describe("DODO ETH PROXY", () => {
   describe("withdraw eth directly", () => {
     it("withdraw", async () => {
       const withdrawAmount = decimalStr("5");
-      const baseLpTokenAddress = await ctx.DODO.methods
+      const baseLpTokenAddress = await ctx.AkwaPool.methods
         ._BASE_CAPITAL_TOKEN_()
         .call();
       const baseLpToken = contracts.getContractWithAddress(
@@ -156,15 +156,15 @@ describe("DODO ETH PROXY", () => {
         baseLpTokenAddress
       );
       await baseLpToken.methods
-        .approve(DODOEthProxy.options.address, MAX_UINT256)
+        .approve(AKWAEthProxy.options.address, MAX_UINT256)
         .send(ctx.sendParam(lp));
       const lpEthBalanceBefore = await ctx.Web3.eth.getBalance(lp);
-      const txReceipt: TransactionReceipt = await DODOEthProxy.methods
+      const txReceipt: TransactionReceipt = await AKWAEthProxy.methods
         .withdrawEthAsBase(withdrawAmount, ctx.QUOTE.options.address)
         .send(ctx.sendParam(lp));
 
       assert.strictEqual(
-        await ctx.DODO.methods.getLpBaseBalance(lp).call(),
+        await ctx.AkwaPool.methods.getLpBaseBalance(lp).call(),
         withdrawAmount
       );
       const tx = await ctx.Web3.eth.getTransaction(txReceipt.transactionHash);
@@ -180,7 +180,7 @@ describe("DODO ETH PROXY", () => {
 
     it("withdraw all", async () => {
       const withdrawAmount = decimalStr("10");
-      const baseLpTokenAddress = await ctx.DODO.methods
+      const baseLpTokenAddress = await ctx.AkwaPool.methods
         ._BASE_CAPITAL_TOKEN_()
         .call();
       const baseLpToken = contracts.getContractWithAddress(
@@ -188,15 +188,15 @@ describe("DODO ETH PROXY", () => {
         baseLpTokenAddress
       );
       await baseLpToken.methods
-        .approve(DODOEthProxy.options.address, MAX_UINT256)
+        .approve(AKWAEthProxy.options.address, MAX_UINT256)
         .send(ctx.sendParam(lp));
       const lpEthBalanceBefore = await ctx.Web3.eth.getBalance(lp);
-      const txReceipt: TransactionReceipt = await DODOEthProxy.methods
+      const txReceipt: TransactionReceipt = await AKWAEthProxy.methods
         .withdrawAllEthAsBase(ctx.QUOTE.options.address)
         .send(ctx.sendParam(lp));
 
       assert.strictEqual(
-        await ctx.DODO.methods.getLpBaseBalance(lp).call(),
+        await ctx.AkwaPool.methods.getLpBaseBalance(lp).call(),
         "0"
       );
       const tx = await ctx.Web3.eth.getTransaction(txReceipt.transactionHash);
@@ -214,7 +214,7 @@ describe("DODO ETH PROXY", () => {
   describe("revert cases", () => {
     it("value not match", async () => {
       await truffleAssert.reverts(
-           DODOEthProxy.methods.sellEthToToken(
+           AKWAEthProxy.methods.sellEthToToken(
             ctx.QUOTE.options.address,
             decimalStr("1"),
             decimalStr("50")
@@ -223,7 +223,7 @@ describe("DODO ETH PROXY", () => {
          "ETH_AMOUNT_NOT_MATCH"
       );
       await truffleAssert.reverts(
-        DODOEthProxy.methods.depositEthAsBase(decimalStr("1"), ctx.QUOTE.options.address)
+        AKWAEthProxy.methods.depositEthAsBase(decimalStr("1"), ctx.QUOTE.options.address)
                             .send(ctx.sendParam(lp, "2")),
         "ETH_AMOUNT_NOT_MATCH"
       );

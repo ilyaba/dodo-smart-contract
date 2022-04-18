@@ -9,7 +9,7 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 /**
- * @title Ownable
+ * @title InitializableOwnable
  * @author DODO Breeder
  *
  * @notice Ownership related functions

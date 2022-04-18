@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -8,7 +8,7 @@
 import * as assert from 'assert';
 import { Contract } from 'web3-eth-contract';
 
-import { DODOContext, getDODOContext } from './utils/Context';
+import { AkwaContext, getAkwaContext } from './utils/Context';
 import {
   newContract,
   UNISWAP_ARBITRAGEUR_CONTRACT_NAME,
@@ -27,17 +27,17 @@ let UniswapArbitrageur: Contract;
 let UniswapReverse: Contract;
 let UniswapArbitrageurReverse: Contract;
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   await ctx.setOraclePrice(decimalStr("100"));
 
   lp = ctx.spareAccounts[0];
   keeper = ctx.spareAccounts[1];
-  await ctx.approveDODO(lp);
+  await ctx.approveAkwaPool(lp);
 
   await ctx.mintTestToken(lp, decimalStr("100"), decimalStr("10000"));
 
-  await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp));
-  await ctx.DODO.methods
+  await ctx.AkwaPool.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp));
+  await ctx.AkwaPool.methods
     .depositQuote(decimalStr("1000"))
     .send(ctx.sendParam(lp));
 
@@ -55,7 +55,7 @@ async function init(ctx: DODOContext): Promise<void> {
 
   UniswapArbitrageur = await newContract(UNISWAP_ARBITRAGEUR_CONTRACT_NAME, [
     Uniswap.options.address,
-    ctx.DODO.options.address,
+    ctx.AkwaPool.options.address,
   ]);
 
   UniswapReverse = await newContract(UNISWAP_CONTRACT_NAME);
@@ -72,16 +72,16 @@ async function init(ctx: DODOContext): Promise<void> {
 
   UniswapArbitrageurReverse = await newContract(
     UNISWAP_ARBITRAGEUR_CONTRACT_NAME,
-    [UniswapReverse.options.address, ctx.DODO.options.address]
+    [UniswapReverse.options.address, ctx.AkwaPool.options.address]
   );
 }
 
 describe("Uniswap Arbitrageur", () => {
   let snapshotId: string;
-  let ctx: DODOContext;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
   });
 
@@ -94,14 +94,14 @@ describe("Uniswap Arbitrageur", () => {
   });
 
   describe("arbitrage with not reverse pair", () => {
-    it("buy at dodo", async () => {
+    it("buy at akwa", async () => {
       await ctx.setOraclePrice(decimalStr("100"));
-      // dodo price 100 uniswap price 200
-      // buy at dodo
+      // akwa price 100 uniswap price 200
+      // buy at akwa
       await logGas(
         UniswapArbitrageur.methods.executeBuyArbitrage(decimalStr("1")),
         ctx.sendParam(keeper),
-        "arbitrage buy at dodo not reverse"
+        "arbitrage buy at akwa not reverse"
       );
       assert.strictEqual(
         await ctx.QUOTE.methods.balanceOf(keeper).call(),
@@ -109,14 +109,14 @@ describe("Uniswap Arbitrageur", () => {
       );
     });
 
-    it("sell at dodo", async () => {
+    it("sell at akwa", async () => {
       await ctx.setOraclePrice(decimalStr("300"));
-      // dodo price 300 uniswap price 200
-      // sell at dodo
+      // akwa price 300 uniswap price 200
+      // sell at akwa
       await logGas(
         UniswapArbitrageur.methods.executeSellArbitrage(decimalStr("1")),
         ctx.sendParam(keeper),
-        "arbitrage sell at dodo not reverse"
+        "arbitrage sell at akwa not reverse"
       );
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(keeper).call(),
@@ -126,14 +126,14 @@ describe("Uniswap Arbitrageur", () => {
   });
 
   describe("arbitrage with reverse pair", () => {
-    it("buy at dodo", async () => {
+    it("buy at akwa", async () => {
       await ctx.setOraclePrice(decimalStr("100"));
-      // dodo price 100 uniswap price 200
-      // buy at dodo
+      // akwa price 100 uniswap price 200
+      // buy at akwa
       await logGas(
         UniswapArbitrageurReverse.methods.executeBuyArbitrage(decimalStr("1")),
         ctx.sendParam(keeper),
-        "arbitrage buy at dodo reverse"
+        "arbitrage buy at akwa reverse"
       );
       assert.strictEqual(
         await ctx.QUOTE.methods.balanceOf(keeper).call(),
@@ -141,14 +141,14 @@ describe("Uniswap Arbitrageur", () => {
       );
     });
 
-    it("sell at dodo", async () => {
+    it("sell at akwa", async () => {
       await ctx.setOraclePrice(decimalStr("300"));
-      // dodo price 300 uniswap price 200
-      // sell at dodo
+      // akwa price 300 uniswap price 200
+      // sell at akwa
       await logGas(
         UniswapArbitrageurReverse.methods.executeSellArbitrage(decimalStr("1")),
         ctx.sendParam(keeper),
-        "arbitrage sell at dodo reverse"
+        "arbitrage sell at akwa reverse"
       );
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(keeper).call(),

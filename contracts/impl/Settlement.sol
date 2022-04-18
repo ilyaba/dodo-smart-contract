@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -12,7 +12,7 @@ import {SafeMath} from "../lib/SafeMath.sol";
 import {SafeERC20} from "../lib/SafeERC20.sol";
 import {DecimalMath} from "../lib/DecimalMath.sol";
 import {Types} from "../lib/Types.sol";
-import {IDODOLpToken} from "../intf/IDODOLpToken.sol";
+import {IAkwaLpToken} from "../intf/IAkwaLpToken.sol";
 import {IERC20} from "../intf/IERC20.sol";
 import {Storage} from "./Storage.sol";
 
@@ -112,7 +112,7 @@ contract Settlement is Storage {
 
     // claim remaining assets after final settlement
     function claimAssets() external preventReentrant {
-        require(_CLOSED_, "DODO_NOT_CLOSED");
+        require(_CLOSED_, "AKWA_POOL_NOT_CLOSED");
         require(!_CLAIMED_[msg.sender], "ALREADY_CLAIMED");
         _CLAIMED_[msg.sender] = true;
 
@@ -137,8 +137,8 @@ contract Settlement is Storage {
         _baseTokenTransferOut(msg.sender, baseAmount);
         _quoteTokenTransferOut(msg.sender, quoteAmount);
 
-        IDODOLpToken(_BASE_CAPITAL_TOKEN_).burn(msg.sender, baseCapital);
-        IDODOLpToken(_QUOTE_CAPITAL_TOKEN_).burn(msg.sender, quoteCapital);
+        IAkwaLpToken(_BASE_CAPITAL_TOKEN_).burn(msg.sender, baseCapital);
+        IAkwaLpToken(_QUOTE_CAPITAL_TOKEN_).burn(msg.sender, quoteCapital);
 
         emit ClaimAssets(msg.sender, baseAmount, quoteAmount);
         return;
@@ -149,13 +149,13 @@ contract Settlement is Storage {
         if (token == _BASE_TOKEN_) {
             require(
                 IERC20(_BASE_TOKEN_).balanceOf(address(this)) >= _BASE_BALANCE_.add(amount),
-                "DODO_BASE_BALANCE_NOT_ENOUGH"
+                "AKWA_POOL_BASE_BALANCE_NOT_ENOUGH"
             );
         }
         if (token == _QUOTE_TOKEN_) {
             require(
                 IERC20(_QUOTE_TOKEN_).balanceOf(address(this)) >= _QUOTE_BALANCE_.add(amount),
-                "DODO_QUOTE_BALANCE_NOT_ENOUGH"
+                "AKWA_POOL_QUOTE_BALANCE_NOT_ENOUGH"
             );
         }
         IERC20(token).safeTransfer(msg.sender, amount);

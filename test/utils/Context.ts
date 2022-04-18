@@ -19,7 +19,7 @@ BigNumber.config({
   DECIMAL_PLACES: 80,
 });
 
-export interface DODOContextInitConfig {
+export interface AkwaContextInitConfig {
   lpFeeRate: string;
   mtFeeRate: string;
   k: string;
@@ -39,18 +39,18 @@ export interface DODOContextInitConfig {
   | 70%                  | 23.3%        |
   +──────────────────────+───────────────+
 */
-export let DefaultDODOContextInitConfig = {
+export let DefaultAkwaContextInitConfig = {
   lpFeeRate: decimalStr("0.002"),
   mtFeeRate: decimalStr("0.001"),
   k: decimalStr("0.1"),
   gasPriceLimit: gweiStr("100"),
 };
 
-export class DODOContext {
+export class AkwaContext {
   EVM: EVM;
   Web3: Web3;
-  DODO: Contract;
-  DODOZoo: Contract;
+  AkwaPool: Contract;
+  AkwaPoolFactory: Contract;
   BASE: Contract;
   BaseCapital: Contract;
   QUOTE: Contract;
@@ -63,7 +63,7 @@ export class DODOContext {
 
   constructor() {}
 
-  async init(config: DODOContextInitConfig) {
+  async init(config: AkwaContextInitConfig) {
     this.EVM = new EVM();
     this.Web3 = getDefaultWeb3();
 
@@ -89,20 +89,20 @@ export class DODOContext {
     this.Maintainer = allAccounts[2];
     this.spareAccounts = allAccounts.slice(3, 10);
 
-    var DODOTemplate = await contracts.newContract(
-      contracts.DODO_CONTRACT_NAME
+    var AkwaPoolTemplate = await contracts.newContract(
+      contracts.AKWA_POOL_CONTRACT_NAME
     );
-    this.DODOZoo = await contracts.newContract(
-      contracts.DODO_ZOO_CONTRACT_NAME,
+    this.AkwaPoolFactory = await contracts.newContract(
+      contracts.AKWA_POOL_FACTORY_CONTRACT_NAME,
       [
-        DODOTemplate.options.address,
+        AkwaPoolTemplate.options.address,
         cloneFactory.options.address,
         this.Supervisor,
       ]
     );
 
-    await this.DODOZoo.methods
-      .breedDODO(
+    await this.AkwaPoolFactory.methods
+      .createNewAkwaPool(
         this.Maintainer,
         this.BASE.options.address,
         this.QUOTE.options.address,
@@ -114,30 +114,30 @@ export class DODOContext {
       )
       .send(this.sendParam(this.Deployer));
 
-    this.DODO = contracts.getContractWithAddress(
-      contracts.DODO_CONTRACT_NAME,
-      await this.DODOZoo.methods
-        .getDODO(this.BASE.options.address, this.QUOTE.options.address)
+    this.AkwaPool = contracts.getContractWithAddress(
+      contracts.AKWA_POOL_CONTRACT_NAME,
+      await this.AkwaPoolFactory.methods
+        .getAkwaPool(this.BASE.options.address, this.QUOTE.options.address)
         .call()
     );
-    await this.DODO.methods
+    await this.AkwaPool.methods
       .enableBaseDeposit()
       .send(this.sendParam(this.Deployer));
-    await this.DODO.methods
+    await this.AkwaPool.methods
       .enableQuoteDeposit()
       .send(this.sendParam(this.Deployer));
-    await this.DODO.methods.enableTrading().send(this.sendParam(this.Deployer));
+    await this.AkwaPool.methods.enableTrading().send(this.sendParam(this.Deployer));
 
     this.BaseCapital = contracts.getContractWithAddress(
-      contracts.DODO_LP_TOKEN_CONTRACT_NAME,
-      await this.DODO.methods._BASE_CAPITAL_TOKEN_().call()
+      contracts.AKWA_LP_TOKEN_CONTRACT_NAME,
+      await this.AkwaPool.methods._BASE_CAPITAL_TOKEN_().call()
     );
     this.QuoteCapital = contracts.getContractWithAddress(
-      contracts.DODO_LP_TOKEN_CONTRACT_NAME,
-      await this.DODO.methods._QUOTE_CAPITAL_TOKEN_().call()
+      contracts.AKWA_LP_TOKEN_CONTRACT_NAME,
+      await this.AkwaPool.methods._QUOTE_CAPITAL_TOKEN_().call()
     );
 
-    console.log(log.blueText("[Init dodo context]"));
+    console.log(log.blueText("[Init AkwaContext]"));
   }
 
   sendParam(sender, value = "0") {
@@ -162,20 +162,20 @@ export class DODOContext {
       .send(this.sendParam(this.Deployer));
   }
 
-  async approveDODO(account: string) {
+  async approveAkwaPool(account: string) {
     await this.BASE.methods
-      .approve(this.DODO.options.address, MAX_UINT256)
+      .approve(this.AkwaPool.options.address, MAX_UINT256)
       .send(this.sendParam(account));
     await this.QUOTE.methods
-      .approve(this.DODO.options.address, MAX_UINT256)
+      .approve(this.AkwaPool.options.address, MAX_UINT256)
       .send(this.sendParam(account));
   }
 }
 
-export async function getDODOContext(
-  config: DODOContextInitConfig = DefaultDODOContextInitConfig
-): Promise<DODOContext> {
-  var context = new DODOContext();
+export async function getAkwaContext(
+  config: AkwaContextInitConfig = DefaultAkwaContextInitConfig
+): Promise<AkwaContext> {
+  var context = new AkwaContext();
   await context.init(config);
   return context;
 }

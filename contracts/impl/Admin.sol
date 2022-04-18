@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -48,19 +48,19 @@ contract Admin is Storage {
     function setLiquidityProviderFeeRate(uint256 newLiquidityPorviderFeeRate) external onlyOwner {
         emit UpdateLiquidityProviderFeeRate(_LP_FEE_RATE_, newLiquidityPorviderFeeRate);
         _LP_FEE_RATE_ = newLiquidityPorviderFeeRate;
-        _checkDODOParameters();
+        _checkAKWAParameters();
     }
 
     function setMaintainerFeeRate(uint256 newMaintainerFeeRate) external onlyOwner {
         emit UpdateMaintainerFeeRate(_MT_FEE_RATE_, newMaintainerFeeRate);
         _MT_FEE_RATE_ = newMaintainerFeeRate;
-        _checkDODOParameters();
+        _checkAKWAParameters();
     }
 
     function setK(uint256 newK) external onlyOwner {
         emit UpdateK(_K_, newK);
         _K_ = newK;
-        _checkDODOParameters();
+        _checkAKWAParameters();
     }
 
     function setGasPriceLimit(uint256 newGasPriceLimit) external onlySupervisorOrOwner {

@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -12,7 +12,7 @@ import {SafeMath} from "../lib/SafeMath.sol";
 import {DecimalMath} from "../lib/DecimalMath.sol";
 import {DODOMath} from "../lib/DODOMath.sol";
 import {Types} from "../lib/Types.sol";
-import {IDODOLpToken} from "../intf/IDODOLpToken.sol";
+import {IAkwaLpToken} from "../intf/IAkwaLpToken.sol";
 import {Storage} from "./Storage.sol";
 import {Settlement} from "./Settlement.sol";
 import {Pricing} from "./Pricing.sol";
@@ -60,7 +60,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     }
 
     modifier dodoNotClosed() {
-        require(!_CLOSED_, "DODO_CLOSED");
+        require(!_CLOSED_, "AKWA_POOL_CLOSED");
         _;
     }
 
@@ -260,19 +260,19 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     // ============ Helper Functions ============
 
     function _mintBaseCapital(address user, uint256 amount) internal {
-        IDODOLpToken(_BASE_CAPITAL_TOKEN_).mint(user, amount);
+        IAkwaLpToken(_BASE_CAPITAL_TOKEN_).mint(user, amount);
     }
 
     function _mintQuoteCapital(address user, uint256 amount) internal {
-        IDODOLpToken(_QUOTE_CAPITAL_TOKEN_).mint(user, amount);
+        IAkwaLpToken(_QUOTE_CAPITAL_TOKEN_).mint(user, amount);
     }
 
     function _burnBaseCapital(address user, uint256 amount) internal {
-        IDODOLpToken(_BASE_CAPITAL_TOKEN_).burn(user, amount);
+        IAkwaLpToken(_BASE_CAPITAL_TOKEN_).burn(user, amount);
     }
 
     function _burnQuoteCapital(address user, uint256 amount) internal {
-        IDODOLpToken(_QUOTE_CAPITAL_TOKEN_).burn(user, amount);
+        IAkwaLpToken(_QUOTE_CAPITAL_TOKEN_).burn(user, amount);
     }
 
     // ============ Getter Functions ============
@@ -298,7 +298,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     }
 
     function getWithdrawQuotePenalty(uint256 amount) public view returns (uint256 penalty) {
-        require(amount <= _QUOTE_BALANCE_, "DODO_QUOTE_BALANCE_NOT_ENOUGH");
+        require(amount <= _QUOTE_BALANCE_, "AKWA_POOL_QUOTE_BALANCE_NOT_ENOUGH");
         if (_R_STATUS_ == Types.RStatus.BELOW_ONE) {
             uint256 spareBase = _BASE_BALANCE_.sub(_TARGET_BASE_TOKEN_AMOUNT_);
             uint256 price = getOraclePrice();
@@ -321,7 +321,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     }
 
     function getWithdrawBasePenalty(uint256 amount) public view returns (uint256 penalty) {
-        require(amount <= _BASE_BALANCE_, "DODO_BASE_BALANCE_NOT_ENOUGH");
+        require(amount <= _BASE_BALANCE_, "AKWA_POOL_BASE_BALANCE_NOT_ENOUGH");
         if (_R_STATUS_ == Types.RStatus.ABOVE_ONE) {
             uint256 spareQuote = _QUOTE_BALANCE_.sub(_TARGET_QUOTE_TOKEN_AMOUNT_);
             uint256 price = getOraclePrice();

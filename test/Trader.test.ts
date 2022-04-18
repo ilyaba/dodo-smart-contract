@@ -1,13 +1,13 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
 
 import * as assert from 'assert';
 
-import { DODOContext, getDODOContext } from './utils/Context';
+import { AkwaContext, getAkwaContext } from './utils/Context';
 import { decimalStr } from './utils/Converter';
 import { logGas } from './utils/Log';
 import {truffleAssert} from './utils/TruffleReverts';
@@ -15,31 +15,31 @@ import {truffleAssert} from './utils/TruffleReverts';
 let lp: string;
 let trader: string;
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   await ctx.setOraclePrice(decimalStr("100"));
 
   lp = ctx.spareAccounts[0];
   trader = ctx.spareAccounts[1];
-  await ctx.approveDODO(lp);
-  await ctx.approveDODO(trader);
+  await ctx.approveAkwaPool(lp);
+  await ctx.approveAkwaPool(trader);
 
   await ctx.mintTestToken(lp, decimalStr("10"), decimalStr("1000"));
   await ctx.mintTestToken(trader, decimalStr("10"), decimalStr("1000"));
 
-  await ctx.DODO.methods
+  await ctx.AkwaPool.methods
     .depositBaseTo(lp, decimalStr("10"))
     .send(ctx.sendParam(lp));
-  await ctx.DODO.methods
+  await ctx.AkwaPool.methods
     .depositQuoteTo(lp, decimalStr("1000"))
     .send(ctx.sendParam(lp));
 }
 
 describe("Trader", () => {
   let snapshotId: string;
-  let ctx: DODOContext;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
   });
 
@@ -53,7 +53,7 @@ describe("Trader", () => {
 
   describe("R goes above ONE", () => {
     it("buy when R equals ONE", async () => {
-      await logGas(ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x"), ctx.sendParam(trader), "buy base token when balanced")
+      await logGas(ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x"), ctx.sendParam(trader), "buy base token when balanced")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -74,23 +74,23 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("8.999")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1101418160497943759027"
       );
       // price update
       assert.strictEqual(
-        await ctx.DODO.methods.getMidPrice().call(),
+        await ctx.AkwaPool.methods.getMidPrice().call(),
         "102353368821735563400"
       );
     });
 
     it("buy when R is ABOVE ONE", async () => {
-      await ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("130"), "0x"), ctx.sendParam(trader), "buy when R is ABOVE ONE")
+      await ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("130"), "0x"), ctx.sendParam(trader), "buy when R is ABOVE ONE")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -111,18 +111,18 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("7.998")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1205632816566587922347"
       );
     });
 
     it("sell when R is ABOVE ONE", async () => {
-      await ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.sellBaseToken(decimalStr("0.5"), decimalStr("40"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE")
+      await ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.sellBaseToken(decimalStr("0.5"), decimalStr("40"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -143,20 +143,20 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("9.499")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1050668302086808653352"
       );
     });
 
     it("sell when R is ABOVE ONE and RStatus back to ONE", async () => {
-      await ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.sellBaseToken("1003002430889317763", decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE and RStatus back to ONE")
+      await ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.sellBaseToken("1003002430889317763", decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE and RStatus back to ONE")
       // R status
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "0");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "0");
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -177,29 +177,29 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         "10002002430889317763"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1000202836320995887518"
       );
       // target status
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
         "10002002430889317763"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
         "1000202836320995887518"
       );
     });
 
     it("sell when R is ABOVE ONE and RStatus becomes BELOW ONE", async () => {
-      await ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.sellBaseToken(decimalStr("2"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE and RStatus becomes BELOW ONE [gas cost worst case]")
+      await ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("110"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.sellBaseToken(decimalStr("2"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is ABOVE ONE and RStatus becomes BELOW ONE [gas cost worst case]")
       // R status
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "2");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "2");
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -220,20 +220,20 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("10.999")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "901779339501143902222"
       );
       // target status
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
         "10002002430889317763"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
         "1000400077797588777268"
       );
     });
@@ -241,7 +241,7 @@ describe("Trader", () => {
 
   describe("R goes below ONE", () => {
     it("sell when R equals ONE", async () => {
-      await logGas(ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell base token when balanced")
+      await logGas(ctx.AkwaPool.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell base token when balanced")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -262,23 +262,23 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("11")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "901283631576572307521"
       );
       // price update
       assert.strictEqual(
-        await ctx.DODO.methods.getMidPrice().call(),
+        await ctx.AkwaPool.methods.getMidPrice().call(),
         "97736983274307939149"
       );
     });
 
     it("sell when R is BELOW ONE", async () => {
-      await ctx.DODO.methods.sellBaseToken(decimalStr("3"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.sellBaseToken(decimalStr("3"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is BELOW ONE")
+      await ctx.AkwaPool.methods.sellBaseToken(decimalStr("3"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.sellBaseToken(decimalStr("3"), decimalStr("90"), "0x"), ctx.sendParam(trader), "sell when R is BELOW ONE")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -299,18 +299,18 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("16")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "463501414214030799701"
       );
     });
 
     it("buy when R is BELOW ONE", async () => {
-      await ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.buyBaseToken(decimalStr("0.5"), decimalStr("60"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE")
+      await ctx.AkwaPool.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.buyBaseToken(decimalStr("0.5"), decimalStr("60"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE")
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -331,20 +331,20 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("10.4995")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "950606769654517772731"
       );
     });
 
     it("buy when R is BELOW ONE and RStatus back to ONE", async () => {
-      await ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.buyBaseToken("997008973080757728", decimalStr("110"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE and RStatus back to ONE")
+      await ctx.AkwaPool.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.buyBaseToken("997008973080757728", decimalStr("110"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE and RStatus back to ONE")
       // R status
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "0");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "0");
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -365,29 +365,29 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         "10001994017946161515"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1000198061604483526684"
       );
       // target status
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
         "10001994017946161515"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
         "1000198061604483526684"
       );
     });
 
     it("buy when R is BELOW ONE and RStatus becomes ABOVE ONE", async () => {
-      await ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
-      await logGas(ctx.DODO.methods.buyBaseToken(decimalStr("2"), decimalStr("220"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE and RStatus becomes ABOVE ONE [gas cost worst case]")
+      await ctx.AkwaPool.methods.sellBaseToken(decimalStr("1"), decimalStr("90"), "0x").send(ctx.sendParam(trader))
+      await logGas(ctx.AkwaPool.methods.buyBaseToken(decimalStr("2"), decimalStr("220"), "0x"), ctx.sendParam(trader), "buy when R is BELOW ONE and RStatus becomes ABOVE ONE [gas cost worst case]")
       // R status
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "1");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "1");
       // trader balances
       assert.strictEqual(
         await ctx.BASE.methods.balanceOf(trader).call(),
@@ -408,20 +408,20 @@ describe("Trader", () => {
       );
       // dodo balances
       assert.strictEqual(
-        await ctx.DODO.methods._BASE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._BASE_BALANCE_().call(),
         decimalStr("8.998")
       );
       assert.strictEqual(
-        await ctx.DODO.methods._QUOTE_BALANCE_().call(),
+        await ctx.AkwaPool.methods._QUOTE_BALANCE_().call(),
         "1101923296205328534388"
       );
       // target status
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_BASE_TOKEN_AMOUNT_().call(),
         "10004000000000000000"
       );
       assert.strictEqual(
-        await ctx.DODO.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
+        await ctx.AkwaPool.methods._TARGET_QUOTE_TOKEN_AMOUNT_().call(),
         "1000198061604483526684"
       );
     });
@@ -429,7 +429,7 @@ describe("Trader", () => {
 
   describe("Corner cases", () => {
     it("buy or sell 0", async () => {
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .sellBaseToken(decimalStr("0"), decimalStr("0"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -441,7 +441,7 @@ describe("Trader", () => {
         decimalStr("1000")
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken(decimalStr("0"), decimalStr("0"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -456,7 +456,7 @@ describe("Trader", () => {
 
     it("buy or sell a tiny amount", async () => {
       // no precision problem
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .sellBaseToken("1", decimalStr("0"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -469,7 +469,7 @@ describe("Trader", () => {
       );
 
       // have precision problem, charge 0
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken("1", decimalStr("1"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -480,10 +480,10 @@ describe("Trader", () => {
         await ctx.QUOTE.methods.balanceOf(trader).call(),
         "1000000000000000000100"
       );
-      assert.strictEqual(await ctx.DODO.methods._R_STATUS_().call(), "0");
+      assert.strictEqual(await ctx.AkwaPool.methods._R_STATUS_().call(), "0");
 
       // no precision problem if trading amount is extremely small
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken("10", decimalStr("1"), "0x")
         .send(ctx.sendParam(trader));
       assert.strictEqual(
@@ -498,7 +498,7 @@ describe("Trader", () => {
 
     it("sell a huge amount of base token", async () => {
       await ctx.mintTestToken(trader, decimalStr("10000"), "0");
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .sellBaseToken(decimalStr("10000"), "0", "0x")
         .send(ctx.sendParam(trader));
       // nearly drain out quote pool
@@ -509,7 +509,7 @@ describe("Trader", () => {
         "1996900220185135480813"
       );
       assert.strictEqual(
-        await ctx.DODO.methods.getLpQuoteBalance(lp).call(),
+        await ctx.AkwaPool.methods.getLpQuoteBalance(lp).call(),
         "4574057156329524019750"
       );
     });
@@ -518,13 +518,13 @@ describe("Trader", () => {
   describe("Revert cases", () => {
     it("price limit", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .buyBaseToken(decimalStr("1"), decimalStr("100"), "0x")
           .send(ctx.sendParam(trader)),
         "BUY_BASE_COST_TOO_MUCH"
       );
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .sellBaseToken(decimalStr("1"), decimalStr("100"), "0x")
           .send(ctx.sendParam(trader)),
         "SELL_BASE_RECEIVE_NOT_ENOUGH"
@@ -533,21 +533,21 @@ describe("Trader", () => {
 
     it("base balance limit", async () => {
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .buyBaseToken(decimalStr("11"), decimalStr("10000"), "0x")
           .send(ctx.sendParam(trader)),
-        "DODO_BASE_BALANCE_NOT_ENOUGH"
+        "AKWA_POOL_BASE_BALANCE_NOT_ENOUGH"
       );
 
-      await ctx.DODO.methods
+      await ctx.AkwaPool.methods
         .buyBaseToken(decimalStr("1"), decimalStr("200"), "0x")
         .send(ctx.sendParam(trader));
 
       await truffleAssert.reverts(
-        ctx.DODO.methods
+        ctx.AkwaPool.methods
           .buyBaseToken(decimalStr("11"), decimalStr("10000"), "0x")
           .send(ctx.sendParam(trader)),
-        "DODO_BASE_BALANCE_NOT_ENOUGH"
+        "AKWA_POOL_BASE_BALANCE_NOT_ENOUGH"
       );
     });
   });

@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -13,10 +13,10 @@ import {DecimalMath} from "../lib/DecimalMath.sol";
 import {SafeERC20} from "../lib/SafeERC20.sol";
 import {SafeMath} from "../lib/SafeMath.sol";
 import {IERC20} from "../intf/IERC20.sol";
-import {IDODORewardVault, DODORewardVault} from "./DODORewardVault.sol";
+import {IAKWARewardVault, AKWARewardVault} from "./AKWARewardVault.sol";
 
 
-contract DODOMine is Ownable {
+contract AkwaMine is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -28,10 +28,10 @@ contract DODOMine is Ownable {
         // We do some fancy math here. Basically, any point in time, the amount of DODOs
         // entitled to a user but is pending to be distributed is:
         //
-        //   pending reward = (user.amount * pool.accDODOPerShare) - user.rewardDebt
+        //   pending reward = (user.amount * pool.accAKWAPerShare) - user.rewardDebt
         //
         // Whenever a user deposits or withdraws LP tokens to a pool. Here's what happens:
-        //   1. The pool's `accDODOPerShare` (and `lastRewardBlock`) gets updated.
+        //   1. The pool's `accAKWAPerShare` (and `lastRewardBlock`) gets updated.
         //   2. User receives the pending reward sent to his/her address.
         //   3. User's `amount` gets updated.
         //   4. User's `rewardDebt` gets updated.
@@ -42,7 +42,7 @@ contract DODOMine is Ownable {
         address lpToken; // Address of LP token contract.
         uint256 allocPoint; // How many allocation points assigned to this pool. DODOs to distribute per block.
         uint256 lastRewardBlock; // Last block number that DODOs distribution occurs.
-        uint256 accDODOPerShare; // Accumulated DODOs per share, times 1e12. See below.
+        uint256 accAKWAPerShare; // Accumulated DODOs per share, times 1e12. See below.
     }
 
     address public dodoRewardVault;
@@ -66,7 +66,7 @@ contract DODOMine is Ownable {
     event Claim(address indexed user, uint256 amount);
 
     constructor(address _dodoToken, uint256 _startBlock) public {
-        dodoRewardVault = address(new DODORewardVault(_dodoToken));
+        dodoRewardVault = address(new AKWARewardVault(_dodoToken));
         startBlock = _startBlock;
     }
 
@@ -114,7 +114,7 @@ contract DODOMine is Ownable {
                 lpToken: _lpToken,
                 allocPoint: _allocPoint,
                 lastRewardBlock: lastRewardBlock,
-                accDODOPerShare: 0
+                accAKWAPerShare: 0
             })
         );
         lpTokenRegistry[_lpToken] = poolInfos.length;
@@ -146,18 +146,18 @@ contract DODOMine is Ownable {
         uint256 pid = getPid(_lpToken);
         PoolInfo storage pool = poolInfos[pid];
         UserInfo storage user = userInfo[pid][_user];
-        uint256 accDODOPerShare = pool.accDODOPerShare;
+        uint256 accAKWAPerShare = pool.accAKWAPerShare;
         uint256 lpSupply = IERC20(pool.lpToken).balanceOf(address(this));
         if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-            uint256 DODOReward = block
+            uint256 AKWAReward = block
                 .number
                 .sub(pool.lastRewardBlock)
                 .mul(dodoPerBlock)
                 .mul(pool.allocPoint)
                 .div(totalAllocPoint);
-            accDODOPerShare = accDODOPerShare.add(DecimalMath.divFloor(DODOReward, lpSupply));
+            accAKWAPerShare = accAKWAPerShare.add(DecimalMath.divFloor(AKWAReward, lpSupply));
         }
-        return DecimalMath.mul(user.amount, accDODOPerShare).sub(user.rewardDebt);
+        return DecimalMath.mul(user.amount, accAKWAPerShare).sub(user.rewardDebt);
     }
 
     function getAllPendingReward(address _user) external view returns (uint256) {
@@ -169,19 +169,19 @@ contract DODOMine is Ownable {
             }
             PoolInfo storage pool = poolInfos[pid];
             UserInfo storage user = userInfo[pid][_user];
-            uint256 accDODOPerShare = pool.accDODOPerShare;
+            uint256 accAKWAPerShare = pool.accAKWAPerShare;
             uint256 lpSupply = IERC20(pool.lpToken).balanceOf(address(this));
             if (block.number > pool.lastRewardBlock && lpSupply != 0) {
-                uint256 DODOReward = block
+                uint256 AKWAReward = block
                     .number
                     .sub(pool.lastRewardBlock)
                     .mul(dodoPerBlock)
                     .mul(pool.allocPoint)
                     .div(totalAllocPoint);
-                accDODOPerShare = accDODOPerShare.add(DecimalMath.divFloor(DODOReward, lpSupply));
+                accAKWAPerShare = accAKWAPerShare.add(DecimalMath.divFloor(AKWAReward, lpSupply));
             }
             totalReward = totalReward.add(
-                DecimalMath.mul(user.amount, accDODOPerShare).sub(user.rewardDebt)
+                DecimalMath.mul(user.amount, accAKWAPerShare).sub(user.rewardDebt)
             );
         }
         return totalReward;
@@ -218,13 +218,13 @@ contract DODOMine is Ownable {
             pool.lastRewardBlock = block.number;
             return;
         }
-        uint256 DODOReward = block
+        uint256 AKWAReward = block
             .number
             .sub(pool.lastRewardBlock)
             .mul(dodoPerBlock)
             .mul(pool.allocPoint)
             .div(totalAllocPoint);
-        pool.accDODOPerShare = pool.accDODOPerShare.add(DecimalMath.divFloor(DODOReward, lpSupply));
+        pool.accAKWAPerShare = pool.accAKWAPerShare.add(DecimalMath.divFloor(AKWAReward, lpSupply));
         pool.lastRewardBlock = block.number;
     }
 
@@ -237,14 +237,14 @@ contract DODOMine is Ownable {
         UserInfo storage user = userInfo[pid][msg.sender];
         updatePool(pid);
         if (user.amount > 0) {
-            uint256 pending = DecimalMath.mul(user.amount, pool.accDODOPerShare).sub(
+            uint256 pending = DecimalMath.mul(user.amount, pool.accAKWAPerShare).sub(
                 user.rewardDebt
             );
             safeDODOTransfer(msg.sender, pending);
         }
         IERC20(pool.lpToken).safeTransferFrom(address(msg.sender), address(this), _amount);
         user.amount = user.amount.add(_amount);
-        user.rewardDebt = DecimalMath.mul(user.amount, pool.accDODOPerShare);
+        user.rewardDebt = DecimalMath.mul(user.amount, pool.accAKWAPerShare);
         emit Deposit(msg.sender, pid, _amount);
     }
 
@@ -254,10 +254,10 @@ contract DODOMine is Ownable {
         UserInfo storage user = userInfo[pid][msg.sender];
         require(user.amount >= _amount, "withdraw too much");
         updatePool(pid);
-        uint256 pending = DecimalMath.mul(user.amount, pool.accDODOPerShare).sub(user.rewardDebt);
+        uint256 pending = DecimalMath.mul(user.amount, pool.accAKWAPerShare).sub(user.rewardDebt);
         safeDODOTransfer(msg.sender, pending);
         user.amount = user.amount.sub(_amount);
-        user.rewardDebt = DecimalMath.mul(user.amount, pool.accDODOPerShare);
+        user.rewardDebt = DecimalMath.mul(user.amount, pool.accAKWAPerShare);
         IERC20(pool.lpToken).safeTransfer(address(msg.sender), _amount);
         emit Withdraw(msg.sender, pid, _amount);
     }
@@ -285,8 +285,8 @@ contract DODOMine is Ownable {
         PoolInfo storage pool = poolInfos[pid];
         UserInfo storage user = userInfo[pid][msg.sender];
         updatePool(pid);
-        uint256 pending = DecimalMath.mul(user.amount, pool.accDODOPerShare).sub(user.rewardDebt);
-        user.rewardDebt = DecimalMath.mul(user.amount, pool.accDODOPerShare);
+        uint256 pending = DecimalMath.mul(user.amount, pool.accAKWAPerShare).sub(user.rewardDebt);
+        user.rewardDebt = DecimalMath.mul(user.amount, pool.accAKWAPerShare);
         safeDODOTransfer(msg.sender, pending);
     }
 
@@ -301,16 +301,16 @@ contract DODOMine is Ownable {
             UserInfo storage user = userInfo[pid][msg.sender];
             updatePool(pid);
             pending = pending.add(
-                DecimalMath.mul(user.amount, pool.accDODOPerShare).sub(user.rewardDebt)
+                DecimalMath.mul(user.amount, pool.accAKWAPerShare).sub(user.rewardDebt)
             );
-            user.rewardDebt = DecimalMath.mul(user.amount, pool.accDODOPerShare);
+            user.rewardDebt = DecimalMath.mul(user.amount, pool.accAKWAPerShare);
         }
         safeDODOTransfer(msg.sender, pending);
     }
 
     // Safe DODO transfer function
     function safeDODOTransfer(address _to, uint256 _amount) internal {
-        IDODORewardVault(dodoRewardVault).reward(_to, _amount);
+        IAKWARewardVault(dodoRewardVault).reward(_to, _amount);
         realizedReward[_to] = realizedReward[_to].add(_amount);
         emit Claim(_to, _amount);
     }

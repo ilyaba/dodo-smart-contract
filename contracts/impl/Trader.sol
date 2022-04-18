@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -11,7 +11,7 @@ pragma experimental ABIEncoderV2;
 import {SafeMath} from "../lib/SafeMath.sol";
 import {DecimalMath} from "../lib/DecimalMath.sol";
 import {Types} from "../lib/Types.sol";
-import {IDODOCallee} from "../intf/IDODOCallee.sol";
+import {IAKWACallee} from "../intf/IAKWACallee.sol";
 import {Storage} from "./Storage.sol";
 import {Pricing} from "./Pricing.sol";
 import {Settlement} from "./Settlement.sol";
@@ -77,7 +77,7 @@ contract Trader is Storage, Pricing, Settlement {
         // settle assets
         _quoteTokenTransferOut(msg.sender, receiveQuote);
         if (data.length > 0) {
-            IDODOCallee(msg.sender).dodoCall(false, amount, receiveQuote, data);
+            IAKWACallee(msg.sender).akwaCall(false, amount, receiveQuote, data);
         }
         _baseTokenTransferIn(msg.sender, amount);
         if (mtFeeQuote != 0) {
@@ -121,7 +121,7 @@ contract Trader is Storage, Pricing, Settlement {
         // settle assets
         _baseTokenTransferOut(msg.sender, amount);
         if (data.length > 0) {
-            IDODOCallee(msg.sender).dodoCall(true, amount, payQuote, data);
+            IAKWACallee(msg.sender).akwaCall(true, amount, payQuote, data);
         }
         _quoteTokenTransferIn(msg.sender, payQuote);
         if (mtFeeBase != 0) {

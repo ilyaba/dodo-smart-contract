@@ -9,7 +9,7 @@ module.exports = {
     "lib/Types.sol",
     "lib/ReentrancyGuard.sol",
     "lib/Ownable.sol",
-    "impl/DODOLpToken.sol",
+    "impl/AkwaLpToken.sol",
     "intf",
     "helper",
   ],

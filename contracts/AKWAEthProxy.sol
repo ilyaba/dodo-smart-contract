@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
@@ -11,25 +11,22 @@ pragma experimental ABIEncoderV2;
 import {ReentrancyGuard} from "./lib/ReentrancyGuard.sol";
 import {SafeERC20} from "./lib/SafeERC20.sol";
 import {SafeMath} from "./lib/SafeMath.sol";
-import {IDODO} from "./intf/IDODO.sol";
+import {IAkwaPool} from "./intf/IAkwaPool.sol";
 import {IERC20} from "./intf/IERC20.sol";
 import {IWETH} from "./intf/IWETH.sol";
-
-interface IDODOZoo {
-    function getDODO(address baseToken, address quoteToken) external view returns (address);
-}
+import {IAkwaPoolFactory} from "./intf/IAkwaPoolFactory.sol";
 
 /**
- * @title DODO Eth Proxy
+ * @title AKWA Eth Proxy
  * @author DODO Breeder
  *
  * @notice Handle ETH-WETH converting for users.
  */
-contract DODOEthProxy is ReentrancyGuard {
+contract AKWAEthProxy is ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
-    address public _DODO_ZOO_;
+    address public _AKWA_POOL_FACTORY_;
     address payable public _WETH_;
 
     // ============ Events ============
@@ -62,18 +59,18 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 payEth
     );
 
-    event ProxyDepositEthAsBase(address indexed lp, address indexed DODO, uint256 ethAmount);
+    event ProxyDepositEthAsBase(address indexed lp, address indexed AKWA, uint256 ethAmount);
 
-    event ProxyWithdrawEthAsBase(address indexed lp, address indexed DODO, uint256 ethAmount);
+    event ProxyWithdrawEthAsBase(address indexed lp, address indexed AKWA, uint256 ethAmount);
 
-    event ProxyDepositEthAsQuote(address indexed lp, address indexed DODO, uint256 ethAmount);
+    event ProxyDepositEthAsQuote(address indexed lp, address indexed AKWA, uint256 ethAmount);
 
-    event ProxyWithdrawEthAsQuote(address indexed lp, address indexed DODO, uint256 ethAmount);
+    event ProxyWithdrawEthAsQuote(address indexed lp, address indexed AKWA, uint256 ethAmount);
 
     // ============ Functions ============
 
-    constructor(address dodoZoo, address payable weth) public {
-        _DODO_ZOO_ = dodoZoo;
+    constructor(address AkwaPoolFactory, address payable weth) public {
+        _AKWA_POOL_FACTORY_ = AkwaPoolFactory;
         _WETH_ = weth;
     }
 
@@ -91,11 +88,11 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 minReceiveTokenAmount
     ) external payable preventReentrant returns (uint256 receiveTokenAmount) {
         require(msg.value == ethAmount, "ETH_AMOUNT_NOT_MATCH");
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(_WETH_, quoteTokenAddress);
-        require(DODO != address(0), "DODO_NOT_EXIST");
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(_WETH_, quoteTokenAddress);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
         IWETH(_WETH_).deposit{value: ethAmount}();
-        IWETH(_WETH_).approve(DODO, ethAmount);
-        receiveTokenAmount = IDODO(DODO).sellBaseToken(ethAmount, minReceiveTokenAmount, "");
+        IWETH(_WETH_).approve(akwaPool, ethAmount);
+        receiveTokenAmount = IAkwaPool(akwaPool).sellBaseToken(ethAmount, minReceiveTokenAmount, "");
         _transferOut(quoteTokenAddress, msg.sender, receiveTokenAmount);
         emit ProxySellEthToToken(msg.sender, quoteTokenAddress, ethAmount, receiveTokenAmount);
         return receiveTokenAmount;
@@ -106,12 +103,12 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 ethAmount,
         uint256 maxPayTokenAmount
     ) external preventReentrant returns (uint256 payTokenAmount) {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(_WETH_, quoteTokenAddress);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        payTokenAmount = IDODO(DODO).queryBuyBaseToken(ethAmount);
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(_WETH_, quoteTokenAddress);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        payTokenAmount = IAkwaPool(akwaPool).queryBuyBaseToken(ethAmount);
         _transferIn(quoteTokenAddress, msg.sender, payTokenAmount);
-        IERC20(quoteTokenAddress).safeApprove(DODO, payTokenAmount);
-        IDODO(DODO).buyBaseToken(ethAmount, maxPayTokenAmount, "");
+        IERC20(quoteTokenAddress).safeApprove(akwaPool, payTokenAmount);
+        IAkwaPool(akwaPool).buyBaseToken(ethAmount, maxPayTokenAmount, "");
         IWETH(_WETH_).withdraw(ethAmount);
         msg.sender.transfer(ethAmount);
         emit ProxyBuyEthWithToken(msg.sender, quoteTokenAddress, ethAmount, payTokenAmount);
@@ -123,11 +120,11 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 tokenAmount,
         uint256 minReceiveEthAmount
     ) external preventReentrant returns (uint256 receiveEthAmount) {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(baseTokenAddress, _WETH_);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        IERC20(baseTokenAddress).safeApprove(DODO, tokenAmount);
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(baseTokenAddress, _WETH_);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        IERC20(baseTokenAddress).safeApprove(akwaPool, tokenAmount);
         _transferIn(baseTokenAddress, msg.sender, tokenAmount);
-        receiveEthAmount = IDODO(DODO).sellBaseToken(tokenAmount, minReceiveEthAmount, "");
+        receiveEthAmount = IAkwaPool(akwaPool).sellBaseToken(tokenAmount, minReceiveEthAmount, "");
         IWETH(_WETH_).withdraw(receiveEthAmount);
         msg.sender.transfer(receiveEthAmount);
         emit ProxySellTokenToEth(msg.sender, baseTokenAddress, tokenAmount, receiveEthAmount);
@@ -140,12 +137,12 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 maxPayEthAmount
     ) external payable preventReentrant returns (uint256 payEthAmount) {
         require(msg.value == maxPayEthAmount, "ETH_AMOUNT_NOT_MATCH");
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(baseTokenAddress, _WETH_);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        payEthAmount = IDODO(DODO).queryBuyBaseToken(tokenAmount);
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(baseTokenAddress, _WETH_);
+        require(akwaPool != address(0), "AKWA_NAKWA_POOL_DOES_NOT_EXISTOT_EXIST");
+        payEthAmount = IAkwaPool(akwaPool).queryBuyBaseToken(tokenAmount);
         IWETH(_WETH_).deposit{value: payEthAmount}();
-        IWETH(_WETH_).approve(DODO, payEthAmount);
-        IDODO(DODO).buyBaseToken(tokenAmount, maxPayEthAmount, "");
+        IWETH(_WETH_).approve(akwaPool, payEthAmount);
+        IAkwaPool(akwaPool).buyBaseToken(tokenAmount, maxPayEthAmount, "");
         _transferOut(baseTokenAddress, msg.sender, tokenAmount);
         uint256 refund = maxPayEthAmount.sub(payEthAmount);
         if (refund > 0) {
@@ -161,12 +158,12 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
     {
         require(msg.value == ethAmount, "ETH_AMOUNT_NOT_MATCH");
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(_WETH_, quoteTokenAddress);
-        require(DODO != address(0), "DODO_NOT_EXIST");
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(_WETH_, quoteTokenAddress);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
         IWETH(_WETH_).deposit{value: ethAmount}();
-        IWETH(_WETH_).approve(DODO, ethAmount);
-        IDODO(DODO).depositBaseTo(msg.sender, ethAmount);
-        emit ProxyDepositEthAsBase(msg.sender, DODO, ethAmount);
+        IWETH(_WETH_).approve(akwaPool, ethAmount);
+        IAkwaPool(akwaPool).depositBaseTo(msg.sender, ethAmount);
+        emit ProxyDepositEthAsBase(msg.sender, akwaPool, ethAmount);
     }
 
     function withdrawEthAsBase(uint256 ethAmount, address quoteTokenAddress)
@@ -174,14 +171,14 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
         returns (uint256 withdrawAmount)
     {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(_WETH_, quoteTokenAddress);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        address ethLpToken = IDODO(DODO)._BASE_CAPITAL_TOKEN_();
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(_WETH_, quoteTokenAddress);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        address ethLpToken = IAkwaPool(akwaPool)._BASE_CAPITAL_TOKEN_();
 
         // transfer all pool shares to proxy
         uint256 lpBalance = IERC20(ethLpToken).balanceOf(msg.sender);
         IERC20(ethLpToken).transferFrom(msg.sender, address(this), lpBalance);
-        IDODO(DODO).withdrawBase(ethAmount);
+        IAkwaPool(akwaPool).withdrawBase(ethAmount);
 
         // transfer remain shares back to msg.sender
         lpBalance = IERC20(ethLpToken).balanceOf(address(this));
@@ -192,7 +189,7 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 wethAmount = IERC20(_WETH_).balanceOf(address(this));
         IWETH(_WETH_).withdraw(wethAmount);
         msg.sender.transfer(wethAmount);
-        emit ProxyWithdrawEthAsBase(msg.sender, DODO, wethAmount);
+        emit ProxyWithdrawEthAsBase(msg.sender, akwaPool, wethAmount);
         return wethAmount;
     }
 
@@ -201,21 +198,21 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
         returns (uint256 withdrawAmount)
     {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(_WETH_, quoteTokenAddress);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        address ethLpToken = IDODO(DODO)._BASE_CAPITAL_TOKEN_();
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(_WETH_, quoteTokenAddress);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        address ethLpToken = IAkwaPool(akwaPool)._BASE_CAPITAL_TOKEN_();
 
         // transfer all pool shares to proxy
         uint256 lpBalance = IERC20(ethLpToken).balanceOf(msg.sender);
         IERC20(ethLpToken).transferFrom(msg.sender, address(this), lpBalance);
-        IDODO(DODO).withdrawAllBase();
+        IAkwaPool(akwaPool).withdrawAllBase();
 
         // because of withdraw penalty, withdrawAmount may not equal to ethAmount
         // query weth amount first and than transfer ETH to msg.sender
         uint256 wethAmount = IERC20(_WETH_).balanceOf(address(this));
         IWETH(_WETH_).withdraw(wethAmount);
         msg.sender.transfer(wethAmount);
-        emit ProxyWithdrawEthAsBase(msg.sender, DODO, wethAmount);
+        emit ProxyWithdrawEthAsBase(msg.sender, akwaPool, wethAmount);
         return wethAmount;
     }
 
@@ -225,12 +222,12 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
     {
         require(msg.value == ethAmount, "ETH_AMOUNT_NOT_MATCH");
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(baseTokenAddress, _WETH_);
-        require(DODO != address(0), "DODO_NOT_EXIST");
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(baseTokenAddress, _WETH_);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
         IWETH(_WETH_).deposit{value: ethAmount}();
-        IWETH(_WETH_).approve(DODO, ethAmount);
-        IDODO(DODO).depositQuoteTo(msg.sender, ethAmount);
-        emit ProxyDepositEthAsQuote(msg.sender, DODO, ethAmount);
+        IWETH(_WETH_).approve(akwaPool, ethAmount);
+        IAkwaPool(akwaPool).depositQuoteTo(msg.sender, ethAmount);
+        emit ProxyDepositEthAsQuote(msg.sender, akwaPool, ethAmount);
     }
 
     function withdrawEthAsQuote(uint256 ethAmount, address baseTokenAddress)
@@ -238,14 +235,14 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
         returns (uint256 withdrawAmount)
     {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(baseTokenAddress, _WETH_);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        address ethLpToken = IDODO(DODO)._QUOTE_CAPITAL_TOKEN_();
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(baseTokenAddress, _WETH_);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        address ethLpToken = IAkwaPool(akwaPool)._QUOTE_CAPITAL_TOKEN_();
 
         // transfer all pool shares to proxy
         uint256 lpBalance = IERC20(ethLpToken).balanceOf(msg.sender);
         IERC20(ethLpToken).transferFrom(msg.sender, address(this), lpBalance);
-        IDODO(DODO).withdrawQuote(ethAmount);
+        IAkwaPool(akwaPool).withdrawQuote(ethAmount);
 
         // transfer remain shares back to msg.sender
         lpBalance = IERC20(ethLpToken).balanceOf(address(this));
@@ -256,7 +253,7 @@ contract DODOEthProxy is ReentrancyGuard {
         uint256 wethAmount = IERC20(_WETH_).balanceOf(address(this));
         IWETH(_WETH_).withdraw(wethAmount);
         msg.sender.transfer(wethAmount);
-        emit ProxyWithdrawEthAsQuote(msg.sender, DODO, wethAmount);
+        emit ProxyWithdrawEthAsQuote(msg.sender, akwaPool, wethAmount);
         return wethAmount;
     }
 
@@ -265,21 +262,21 @@ contract DODOEthProxy is ReentrancyGuard {
         preventReentrant
         returns (uint256 withdrawAmount)
     {
-        address DODO = IDODOZoo(_DODO_ZOO_).getDODO(baseTokenAddress, _WETH_);
-        require(DODO != address(0), "DODO_NOT_EXIST");
-        address ethLpToken = IDODO(DODO)._QUOTE_CAPITAL_TOKEN_();
+        address akwaPool = IAkwaPoolFactory(_AKWA_POOL_FACTORY_).getAkwaPool(baseTokenAddress, _WETH_);
+        require(akwaPool != address(0), "AKWA_POOL_DOES_NOT_EXIST");
+        address ethLpToken = IAkwaPool(akwaPool)._QUOTE_CAPITAL_TOKEN_();
 
         // transfer all pool shares to proxy
         uint256 lpBalance = IERC20(ethLpToken).balanceOf(msg.sender);
         IERC20(ethLpToken).transferFrom(msg.sender, address(this), lpBalance);
-        IDODO(DODO).withdrawAllQuote();
+        IAkwaPool(akwaPool).withdrawAllQuote();
 
         // because of withdraw penalty, withdrawAmount may not equal to ethAmount
         // query weth amount first and than transfer ETH to msg.sender
         uint256 wethAmount = IERC20(_WETH_).balanceOf(address(this));
         IWETH(_WETH_).withdraw(wethAmount);
         msg.sender.transfer(wethAmount);
-        emit ProxyWithdrawEthAsQuote(msg.sender, DODO, wethAmount);
+        emit ProxyWithdrawEthAsQuote(msg.sender, akwaPool, wethAmount);
         return wethAmount;
     }
 

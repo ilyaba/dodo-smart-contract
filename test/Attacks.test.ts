@@ -1,11 +1,11 @@
 /*
 
-    Copyright 2020 DODO ZOO.
+    Copyright 2022 Akwa Finance
     SPDX-License-Identifier: Apache-2.0
 
 */
 
-import { DODOContext, getDODOContext } from './utils/Context';
+import { AkwaContext, getAkwaContext } from './utils/Context';
 import { decimalStr, gweiStr } from './utils/Converter';
 import BigNumber from "bignumber.js";
 import * as assert from "assert"
@@ -17,7 +17,7 @@ let lp2: string
 let trader: string
 let hacker: string
 
-async function init(ctx: DODOContext): Promise<void> {
+async function init(ctx: AkwaContext): Promise<void> {
   await ctx.setOraclePrice(decimalStr("100"));
   lp1 = ctx.spareAccounts[0];
   lp2 = ctx.spareAccounts[1];
@@ -27,19 +27,19 @@ async function init(ctx: DODOContext): Promise<void> {
   await ctx.mintTestToken(lp2, decimalStr("100"), decimalStr("10000"));
   await ctx.mintTestToken(trader, decimalStr("100"), decimalStr("10000"));
   await ctx.mintTestToken(hacker, decimalStr("10000"), decimalStr("1000000"));
-  await ctx.approveDODO(lp1);
-  await ctx.approveDODO(lp2);
-  await ctx.approveDODO(trader);
-  await ctx.approveDODO(hacker);
+  await ctx.approveAkwaPool(lp1);
+  await ctx.approveAkwaPool(lp2);
+  await ctx.approveAkwaPool(trader);
+  await ctx.approveAkwaPool(hacker);
 }
 
 describe("Attacks", () => {
 
-  let snapshotId: string
-  let ctx: DODOContext
+  let snapshotId: string;
+  let ctx: AkwaContext;
 
   before(async () => {
-    ctx = await getDODOContext();
+    ctx = await getAkwaContext();
     await init(ctx);
   })
 
@@ -66,22 +66,23 @@ describe("Attacks", () => {
       Same in quote direction
     */
     it("attack on base token", async () => {
-      await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1))
-      await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1))
+
+      await ctx.AkwaPool.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1))
+      await ctx.AkwaPool.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1))
       let hackerInitBaseBalance = new BigNumber(await ctx.BASE.methods.balanceOf(hacker).call())
       let hackerInitQuoteBalance = new BigNumber(await ctx.QUOTE.methods.balanceOf(hacker).call())
       // attack step 1
-      await ctx.DODO.methods.depositBase(decimalStr("5000")).send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.depositBase(decimalStr("5000")).send(ctx.sendParam(hacker))
       // attack step 2
-      await ctx.DODO.methods.buyBaseToken(decimalStr("9.5"), decimalStr("2000"), "0x").send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.buyBaseToken(decimalStr("9.5"), decimalStr("2000"), "0x").send(ctx.sendParam(hacker))
       // attack step 3
-      await ctx.DODO.methods.withdrawBase(decimalStr("5000")).send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.withdrawBase(decimalStr("5000")).send(ctx.sendParam(hacker))
       // attack step 4
       let hackerTempBaseBalance = new BigNumber(await ctx.BASE.methods.balanceOf(hacker).call())
       if (hackerTempBaseBalance.isGreaterThan(hackerInitBaseBalance)) {
-        await ctx.DODO.methods.sellBaseToken(hackerTempBaseBalance.minus(hackerInitBaseBalance).toString(), "0", "0x").send(ctx.sendParam(hacker))
+        await ctx.AkwaPool.methods.sellBaseToken(hackerTempBaseBalance.minus(hackerInitBaseBalance).toString(), "0", "0x").send(ctx.sendParam(hacker))
       } else {
-        await ctx.DODO.methods.buyBaseToken(hackerInitBaseBalance.minus(hackerTempBaseBalance).toString(), decimalStr("5000"), "0x").send(ctx.sendParam(hacker))
+        await ctx.AkwaPool.methods.buyBaseToken(hackerInitBaseBalance.minus(hackerTempBaseBalance).toString(), decimalStr("5000"), "0x").send(ctx.sendParam(hacker))
       }
 
       // expected hacker no profit
@@ -92,31 +93,31 @@ describe("Attacks", () => {
       assert.ok(hackerQuoteBalance.isLessThanOrEqualTo(hackerInitQuoteBalance))
 
       // expected lp no loss
-      let lpBaseBalance = new BigNumber(await ctx.DODO.methods.getLpBaseBalance(lp1).call())
-      let lpQuoteBalance = new BigNumber(await ctx.DODO.methods.getLpQuoteBalance(lp1).call())
+      let lpBaseBalance = new BigNumber(await ctx.AkwaPool.methods.getLpBaseBalance(lp1).call())
+      let lpQuoteBalance = new BigNumber(await ctx.AkwaPool.methods.getLpQuoteBalance(lp1).call())
 
       assert.ok(lpBaseBalance.isGreaterThanOrEqualTo(decimalStr("10")))
       assert.ok(lpQuoteBalance.isGreaterThanOrEqualTo(decimalStr("1000")))
     })
 
     it("attack on quote token", async () => {
-      await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1))
-      await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1))
+      await ctx.AkwaPool.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1))
+      await ctx.AkwaPool.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1))
       let hackerInitBaseBalance = new BigNumber(await ctx.BASE.methods.balanceOf(hacker).call())
       let hackerInitQuoteBalance = new BigNumber(await ctx.QUOTE.methods.balanceOf(hacker).call())
 
       // attack step 1
-      await ctx.DODO.methods.depositQuote(decimalStr("100000")).send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.depositQuote(decimalStr("100000")).send(ctx.sendParam(hacker))
       // attack step 2
-      await ctx.DODO.methods.sellBaseToken(decimalStr("9"), decimalStr("500"), "0x").send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.sellBaseToken(decimalStr("9"), decimalStr("500"), "0x").send(ctx.sendParam(hacker))
       // attack step 3
-      await ctx.DODO.methods.withdrawQuote(decimalStr("100000")).send(ctx.sendParam(hacker))
+      await ctx.AkwaPool.methods.withdrawQuote(decimalStr("100000")).send(ctx.sendParam(hacker))
       // attack step 4
       let hackerTempBaseBalance = new BigNumber(await ctx.BASE.methods.balanceOf(hacker).call())
       if (hackerTempBaseBalance.isGreaterThan(hackerInitBaseBalance)) {
-        await ctx.DODO.methods.sellBaseToken(hackerTempBaseBalance.minus(hackerInitBaseBalance).toString(), "0", "0x").send(ctx.sendParam(hacker))
+        await ctx.AkwaPool.methods.sellBaseToken(hackerTempBaseBalance.minus(hackerInitBaseBalance).toString(), "0", "0x").send(ctx.sendParam(hacker))
       } else {
-        await ctx.DODO.methods.buyBaseToken(hackerInitBaseBalance.minus(hackerTempBaseBalance).toString(), decimalStr("5000"), "0x").send(ctx.sendParam(hacker))
+        await ctx.AkwaPool.methods.buyBaseToken(hackerInitBaseBalance.minus(hackerTempBaseBalance).toString(), decimalStr("5000"), "0x").send(ctx.sendParam(hacker))
       }
 
       // expected hacker no profit
@@ -127,8 +128,8 @@ describe("Attacks", () => {
       assert.ok(hackerQuoteBalance.isLessThanOrEqualTo(hackerInitQuoteBalance))
 
       // expected lp no loss
-      let lpBaseBalance = new BigNumber(await ctx.DODO.methods.getLpBaseBalance(lp1).call())
-      let lpQuoteBalance = new BigNumber(await ctx.DODO.methods.getLpQuoteBalance(lp1).call())
+      let lpBaseBalance = new BigNumber(await ctx.AkwaPool.methods.getLpBaseBalance(lp1).call())
+      let lpQuoteBalance = new BigNumber(await ctx.AkwaPool.methods.getLpQuoteBalance(lp1).call())
 
       assert.ok(lpBaseBalance.isGreaterThanOrEqualTo(decimalStr("10")))
       assert.ok(lpQuoteBalance.isGreaterThanOrEqualTo(decimalStr("1000")))
@@ -144,16 +145,16 @@ describe("Attacks", () => {
       revert tx
     */
     it("front run", async () => {
-      await ctx.DODO.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1));
-      await ctx.DODO.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.depositBase(decimalStr("10")).send(ctx.sendParam(lp1));
+      await ctx.AkwaPool.methods.depositQuote(decimalStr("1000")).send(ctx.sendParam(lp1));
 
       await truffleAssert.reverts(
-        ctx.DODO.methods.buyBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
+        ctx.AkwaPool.methods.buyBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
         "GAS_PRICE_EXCEED"
       )
       
       await truffleAssert.reverts(
-        ctx.DODO.methods.sellBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
+        ctx.AkwaPool.methods.sellBaseToken(decimalStr("1"), decimalStr("200"), "0x").send({ from: trader, gas: 300000, gasPrice: gweiStr("200") }), 
         "GAS_PRICE_EXCEED"
       )
     })

@@ -1,3 +1,9 @@
+/*
+
+    Copyright 2022 Akwa Finance
+    SPDX-License-Identifier: Apache-2.0
+
+*/
 /**
  *Submitted for verification at Etherscan.io on 2020-05-05
  */
