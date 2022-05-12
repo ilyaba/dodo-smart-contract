@@ -8,6 +8,28 @@
 pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
+struct AkwaPoolData
+{
+    address poolAddress;
+    string  base;
+    address baseAddress;
+    string  quote;
+    address quoteAddress;
+//    address supervisor;
+//    address maintainer;
+//    address oracle;
+    uint256 lpFeeRate;
+    uint256 mtFeeRate;
+    uint256 k;
+    uint256 gasPriceLimit;
+    bool    tradeAllowed;
+    bool    buyingAllowed;
+    bool    sellingAllowed;
+//    bool    depositBaseAllowed;
+//    bool    depositQuoteAllowed;
+//    uint256 baseBalanceLimit;
+//    uint256 quoteBalanceLimit;
+}
 
 interface IAkwaPool {
     function init(
@@ -64,4 +86,6 @@ interface IAkwaPool {
     function _BASE_TOKEN_() external returns (address);
 
     function _QUOTE_TOKEN_() external returns (address);
+
+    function getPoolData() external view returns (AkwaPoolData memory);
 }

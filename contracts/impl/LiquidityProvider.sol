@@ -59,7 +59,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
         _;
     }
 
-    modifier dodoNotClosed() {
+    modifier akwaPoolNotClosed() {
         require(!_CLOSED_, "AKWA_POOL_CLOSED");
         _;
     }
@@ -147,7 +147,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     function withdrawQuoteTo(address to, uint256 amount)
         public
         preventReentrant
-        dodoNotClosed
+        akwaPoolNotClosed
         returns (uint256)
     {
         // calculate capital
@@ -180,7 +180,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     function withdrawBaseTo(address to, uint256 amount)
         public
         preventReentrant
-        dodoNotClosed
+        akwaPoolNotClosed
         returns (uint256)
     {
         // calculate capital
@@ -215,7 +215,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
     function withdrawAllQuoteTo(address to)
         public
         preventReentrant
-        dodoNotClosed
+        akwaPoolNotClosed
         returns (uint256)
     {
         uint256 withdrawAmount = getLpQuoteBalance(msg.sender);
@@ -237,7 +237,7 @@ contract LiquidityProvider is Storage, Pricing, Settlement {
         return withdrawAmount.sub(penalty);
     }
 
-    function withdrawAllBaseTo(address to) public preventReentrant dodoNotClosed returns (uint256) {
+    function withdrawAllBaseTo(address to) public preventReentrant akwaPoolNotClosed returns (uint256) {
         uint256 withdrawAmount = getLpBaseBalance(msg.sender);
         uint256 capital = getBaseCapitalBalanceOf(msg.sender);
 

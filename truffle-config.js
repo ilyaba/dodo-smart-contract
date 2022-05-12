@@ -26,6 +26,10 @@
 require("ts-node/register"); // eslint-disable-line
 require("dotenv-flow").config(); // eslint-disable-line
 
+var HDWalletProvider = require("@truffle/hdwallet-provider");
+var privKey = process.env.privKey;
+var infuraId = process.env.infuraId;
+
 module.exports = {
   /**
    * Networks define how you connect to your ethereum client and let you set the
@@ -71,6 +75,28 @@ module.exports = {
       gas: 0xfffffffffff,
       gasPrice: 1,
     },
+    kovan: {
+      networkCheckTimeout: 100000,
+      provider: function () {
+        return new HDWalletProvider(privKey, "https://kovan.infura.io/v3/" + infuraId);
+      },
+      gas: 12000000,
+      gasPrice: 10000000000,
+      network_id: 42,
+      skipDryRun: true,
+      websockets: true,
+    },
+    goerli: {
+      networkCheckTimeout: 100000,
+      provider: function () {
+        return new HDWalletProvider(privKey, "https://goerli.infura.io/v3/" + infuraId);
+      },
+      gas: 10000000,
+      gasPrice: 1000000000,
+      network_id: 5,
+      skipDryRun: true,
+      websockets: true,
+    },    
   },
 
   // Set default mocha options here, use special reporters etc.

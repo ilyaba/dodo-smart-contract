@@ -15,8 +15,8 @@ pragma experimental ABIEncoderV2;
  * @notice Ownership related functions
  */
 contract Ownable {
-    address public _OWNER_;
-    address public _NEW_OWNER_;
+    address internal _OWNER_;
+    address internal _NEW_OWNER_;
 
     // ============ Events ============
 

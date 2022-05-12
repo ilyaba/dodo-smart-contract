@@ -1,9 +1,9 @@
 {
-  "name": "dodo",
+  "name": "Akwa",
   "version": "1.0.0",
-  "description": "a kind of bird",
+  "description": "Akwa service",
   "main": "index.js",
-  "author": "dodo breeder",
+  "author": "Ilya Badaev",
   "license": "Apache-2.0",
   "keywords": [
     "dodo",

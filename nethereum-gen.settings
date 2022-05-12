@@ -1,0 +1,7 @@
+{
+    "projectName": "Akwa.SmartContracts",
+    "namespace": "Akwa.SmartContracts",
+    "lang": 0,
+    "autoCodeGen": true,
+    "projectPath": "../AkwaSmartContracts"
+}

@@ -9,7 +9,7 @@ pragma solidity 0.6.9;
 pragma experimental ABIEncoderV2;
 
 import {Ownable} from "./lib/Ownable.sol";
-import {IAkwaPool} from "./intf/IAkwaPool.sol";
+import {IAkwaPool, AkwaPoolData} from "./intf/IAkwaPool.sol";
 import {IAkwaPoolFactory} from "./intf/IAkwaPoolFactory.sol";
 import {ICloneFactory} from "./helper/CloneFactory.sol";
 
@@ -21,13 +21,13 @@ import {ICloneFactory} from "./helper/CloneFactory.sol";
  * @notice Register of All Akwa
  */
 contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
-    address public _AKWA_LOGIC_;
-    address public _CLONE_FACTORY_;
+    address internal _AKWA_POOL_TEMPLATE_;
+    address internal _CLONE_FACTORY_;
 
-    address public _DEFAULT_SUPERVISOR_;
+    address private _DEFAULT_SUPERVISOR_;
 
-    mapping(address => mapping(address => address)) internal _AKWA_REGISTER_;
-    address[] public _AKWAs;
+    mapping(address => mapping(address => address)) private _AKWA_POOL_REGISTER_;
+    address[] private _AKWA_POOLS_;
 
     // ============ Events ============
 
@@ -36,19 +36,19 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
     // ============ Constructor Function ============
 
     constructor(
-        address _akwaLogic,
+        address _akwaPoolTemplate,
         address _cloneFactory,
         address _defaultSupervisor
     ) public {
-        _AKWA_LOGIC_ = _akwaLogic;
+        _AKWA_POOL_TEMPLATE_ = _akwaPoolTemplate;
         _CLONE_FACTORY_ = _cloneFactory;
         _DEFAULT_SUPERVISOR_ = _defaultSupervisor;
     }
 
     // ============ Admin Function ============
 
-    function setAKWALogic(address _akwaLogic) external onlyOwner {
-        _AKWA_LOGIC_ = _akwaLogic;
+    function setAkwaPoolTemplate(address _akwaPoolTemplate) external onlyOwner {
+        _AKWA_POOL_TEMPLATE_ = _akwaPoolTemplate;
     }
 
     function setCloneFactory(address _cloneFactory) external onlyOwner {
@@ -63,11 +63,11 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
         address baseToken = IAkwaPool(akwaPool)._BASE_TOKEN_();
         address quoteToken = IAkwaPool(akwaPool)._QUOTE_TOKEN_();
         require(isAkwaPoolRegistered(baseToken, quoteToken), "AKWA_POOL_NOT_REGISTERED");
-        _AKWA_REGISTER_[baseToken][quoteToken] = address(0);
-        for (uint256 i = 0; i <= _AKWAs.length - 1; i++) {
-            if (_AKWAs[i] == akwaPool) {
-                _AKWAs[i] = _AKWAs[_AKWAs.length - 1];
-                _AKWAs.pop();
+        _AKWA_POOL_REGISTER_[baseToken][quoteToken] = address(0);
+        for (uint256 i = 0; i <= _AKWA_POOLS_.length - 1; i++) {
+            if (_AKWA_POOLS_[i] == akwaPool) {
+                _AKWA_POOLS_[i] = _AKWA_POOLS_[_AKWA_POOLS_.length - 1];
+                _AKWA_POOLS_.pop();
                 break;
             }
         }
@@ -77,8 +77,8 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
         address baseToken = IAkwaPool(akwaPool)._BASE_TOKEN_();
         address quoteToken = IAkwaPool(akwaPool)._QUOTE_TOKEN_();
         require(!isAkwaPoolRegistered(baseToken, quoteToken), "AKWA_POOL_ALREADY_REGISTERED");
-        _AKWA_REGISTER_[baseToken][quoteToken] = akwaPool;
-        _AKWAs.push(akwaPool);
+        _AKWA_POOL_REGISTER_[baseToken][quoteToken] = akwaPool;
+        _AKWA_POOLS_.push(akwaPool);
     }
 
     // ============ Create Akwa Pool Function ============
@@ -94,7 +94,7 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
         uint256 gasPriceLimit
     ) external onlyOwner returns (address newAkwaPool) {
         require(!isAkwaPoolRegistered(baseToken, quoteToken), "AKWA_POOL_ALREADY_REGISTERED");
-        newAkwaPool = ICloneFactory(_CLONE_FACTORY_).clone(_AKWA_LOGIC_);
+        newAkwaPool = ICloneFactory(_CLONE_FACTORY_).clone(_AKWA_POOL_TEMPLATE_);
         IAkwaPool(newAkwaPool).init(
             _OWNER_,
             _DEFAULT_SUPERVISOR_,
@@ -116,8 +116,8 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
 
     function isAkwaPoolRegistered(address baseToken, address quoteToken) public view returns (bool) {
         if (
-            _AKWA_REGISTER_[baseToken][quoteToken] == address(0) &&
-            _AKWA_REGISTER_[quoteToken][baseToken] == address(0)
+            _AKWA_POOL_REGISTER_[baseToken][quoteToken] == address(0) &&
+            _AKWA_POOL_REGISTER_[quoteToken][baseToken] == address(0)
         ) {
             return false;
         } else {
@@ -126,10 +126,21 @@ contract AkwaPoolFactory is Ownable, IAkwaPoolFactory {
     }
 
     function getAkwaPool(address baseToken, address quoteToken) override external view returns (address) {
-        return _AKWA_REGISTER_[baseToken][quoteToken];
+        return _AKWA_POOL_REGISTER_[baseToken][quoteToken];
     }
 
-    function getAllAkwaPools() external view returns (address[] memory) {
-        return _AKWAs;
+    function getAllAkwaPools() external view returns (AkwaPoolData[] memory) {
+        AkwaPoolData[] memory retVal = new AkwaPoolData[](_AKWA_POOLS_.length);
+
+        for (uint256 i = 0; i <= _AKWA_POOLS_.length - 1; i++) {
+            retVal[i] = (IAkwaPool(_AKWA_POOLS_[i]).getPoolData());
+        }
+
+        return retVal;
     }
+
+    function getAllAkwaPoolAddresses() external view returns (address[] memory) {
+        return _AKWA_POOLS_;
+    }
+
 }

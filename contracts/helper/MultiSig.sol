@@ -136,7 +136,7 @@ contract MultiSigWalletWithTimelock {
         owners = _owners;
         required = _required;
 
-        // initialzie Emergency calls
+        // initialize Emergency calls
         emergencyCalls.push(
             EmergencyCall({
                 selector: keccak256(abi.encodePacked("claimOwnership()")),

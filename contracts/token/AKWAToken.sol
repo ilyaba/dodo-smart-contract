@@ -12,14 +12,13 @@ import {SafeMath} from "../lib/SafeMath.sol";
 
 
 /**
- * @title DODO Token
- * @author DODO Breeder
+ * @title Akwa Token
  */
 contract AKWAToken {
     using SafeMath for uint256;
 
-    string public symbol = "DODO";
-    string public name = "DODO bird";
+    string public symbol = "AKWA";
+    string public name = "AKWA Token";
 
     uint256 public decimals = 18;
     uint256 public totalSupply = 1000000000 * 10**18; // 1 Billion

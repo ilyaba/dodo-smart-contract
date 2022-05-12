@@ -15,7 +15,7 @@ import {Trader} from "./impl/Trader.sol";
 import {LiquidityProvider} from "./impl/LiquidityProvider.sol";
 import {Admin} from "./impl/Admin.sol";
 import {AkwaLpToken} from "./impl/AkwaLpToken.sol";
-
+import {AkwaPoolData} from "./intf/IAkwaPool.sol";
 
 /**
  * @title AKWA
@@ -70,5 +70,31 @@ contract AkwaPool is Admin, Trader, LiquidityProvider {
         _QUOTE_CAPITAL_TOKEN_ = address(new AkwaLpToken(_QUOTE_TOKEN_));
 
         _checkAKWAParameters();
+    }
+
+    function getPoolData() external view returns (AkwaPoolData memory) {
+        AkwaPoolData memory retVal = AkwaPoolData({
+            poolAddress : address(this),
+            baseAddress : _BASE_TOKEN_,
+            quoteAddress : _QUOTE_TOKEN_,
+            base : IERC20(_BASE_TOKEN_).name(),
+            quote : IERC20(_QUOTE_TOKEN_).name(),
+//            supervisor : _SUPERVISOR_,
+//            maintainer : _MAINTAINER_,
+//            oracle : _ORACLE_,
+            lpFeeRate : _LP_FEE_RATE_,
+            mtFeeRate : _MT_FEE_RATE_,
+            k : _K_,
+            gasPriceLimit : _GAS_PRICE_LIMIT_,
+            tradeAllowed : _TRADE_ALLOWED_,
+            buyingAllowed : _BUYING_ALLOWED_,
+            sellingAllowed : _SELLING_ALLOWED_
+//            depositBaseAllowed : _DEPOSIT_BASE_ALLOWED_,
+//            depositQuoteAllowed : _DEPOSIT_QUOTE_ALLOWED_
+//            baseBalanceLimit : _BASE_BALANCE_LIMIT_,
+//            quoteBalanceLimit : _QUOTE_BALANCE_LIMIT_
+        });
+
+        return retVal;
     }
 }
